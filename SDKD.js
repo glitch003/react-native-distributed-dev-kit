@@ -1,5 +1,6 @@
 export default class SDKD {
-  constructor(){
+  constructor(apiKey){
+    this.apiKey = apiKey;
     console.log('[SDKD]: constructor()');
   }
   generateWallet(email){
