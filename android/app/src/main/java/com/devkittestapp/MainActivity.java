@@ -1,6 +1,7 @@
 package com.devkittestapp;
 
 import com.facebook.react.ReactActivity;
+import com.bitgo.randombytes.RandomBytesPackage;
 
 public class MainActivity extends ReactActivity {
 
