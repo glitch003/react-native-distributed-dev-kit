@@ -1,12 +1,11 @@
-import './shim.js';
-import crypto from 'crypto';
-
+import Wallet from './myetherwallet.js';
 
 export default class SDKD {
   constructor(apiKey){
     this.apiKey = apiKey;
     console.log('[SDKD]: constructor()');
-    console.log(crypto.randomBytes(32));
+    let w = Wallet.generate();
+    console.log('wallet address: '+w.getAddressString());
   }
   generateWallet(email){
     console.log('[SDKD]: generateWallet('+email+')');
