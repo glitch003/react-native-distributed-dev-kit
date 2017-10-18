@@ -26,12 +26,21 @@ const instructions = Platform.select({
 export default class App extends Component<{}> {
   constructor(){
     super();
+    this.state = {
+      wallet: false,
+      balance: 'loading...'
+    }
+  }
+  componentWillMount(){
     let w = new SDKD.Wallet(SDKD_APIKEY);
     w.activate('glitch0@gmail.com')
     .then(() => {
+      this.setState({wallet: w});
       // check balance
       w.getBalance()
-      .then((balance) => console.log('balance is '+balance));
+      .then((balance) => {
+        this.setState({balance});
+      });
     });
   }
   render() {
@@ -40,12 +49,10 @@ export default class App extends Component<{}> {
         <Text style={styles.welcome}>
           Welcome to React Native!
         </Text>
-        <Text style={styles.instructions}>
-          To get started, edit App.js
+        <Text>
+          Your balance is {this.state.balance} Wei
         </Text>
-        <Text style={styles.instructions}>
-          {instructions}
-        </Text>
+        {this.state.wallet ? this.state.wallet.renderAddressQRCode() : null}
       </View>
     );
   }

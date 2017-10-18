@@ -1,5 +1,8 @@
 import '../shim.js';
 import * as Keychain from 'react-native-keychain';
+import QRCode from 'react-native-qrcode';
+import React from 'react';
+
 // crypto and ethutils
 import crypto from 'crypto';
 var ethUtil = require('ethereumjs-util');
@@ -74,6 +77,16 @@ export class Wallet {
     })
   }
 
+  renderAddressQRCode(){
+    return (
+      <QRCode
+        value={this.getAddressString()}
+        size={200}
+        bgColor='black'
+        fgColor='white'/>
+    );
+  }
+
   // private
 
   _newPrivateKey(){
@@ -105,4 +118,3 @@ export class Wallet {
     privates.set(this, existingPrivates);
   }
 }
-
