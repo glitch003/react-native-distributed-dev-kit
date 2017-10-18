@@ -1,4 +1,7 @@
 'use strict';
+var globalFuncs = global.globalFuncs;
+var ajaxReq = global.ajaxReq;
+
 var customNode = function(srvrUrl, port, httpBasicAuthentication) {
     this.SERVERURL = port ? srvrUrl + ':' + port : srvrUrl;
     if (httpBasicAuthentication) {

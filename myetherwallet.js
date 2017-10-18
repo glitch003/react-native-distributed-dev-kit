@@ -1,8 +1,21 @@
 'use strict';
+// nodejs stuff
 import './shim.js';
+// crypto and ethutils
 import crypto from 'crypto';
 var ethUtil = require('ethereumjs-util');
 ethUtil.crypto = crypto;
+
+const ETHERSCAN_HOST = "https://ropsten.etherscan.io";
+const ETHERSCAN_API_KEY = "MJRID568UADAJ8AJGC6ZVFABQ5V86DHM49";
+
+// required to bring in MEW node stuff
+// global.ethUtil = ethUtil;
+// global.globalFuncs = require('./etherwallet-mercury/app/scripts/globalFuncs.js');
+// var ajaxReq = require('./etherwallet-mercury/app/scripts/ajaxReq');
+// global.ajaxReq = ajaxReq;
+// var nodes = require('./etherwallet-mercury/app/scripts/nodes');
+// const nodeKey = 'rop_mew';
 
 var Wallet = function(priv, pub, path, hwType, hwTransport) {
     if (typeof priv != "undefined") {
@@ -13,6 +26,15 @@ var Wallet = function(priv, pub, path, hwType, hwTransport) {
     this.hwType = hwType;
     this.hwTransport = hwTransport;
     this.type = "default";
+
+    // for MEW node
+    // let curNode = nodes.nodeList[nodeKey];
+    // ajaxReq['key'] = nodeKey;
+    // for (var attrname in curNode.lib) ajaxReq[attrname] = curNode.lib[attrname];
+    // for (var attrname in curNode)
+    //     if (attrname != 'name' && attrname != 'tokenList' && attrname != 'lib')
+    //         ajaxReq[attrname] = curNode[attrname];
+    // console.log(ajaxReq);
 }
 Wallet.generate = function(icapDirect) {
     if (icapDirect) {
@@ -108,30 +130,19 @@ function removeAllTokenConflicts(conflictWithDefaultTokens, localTokens) {
 }
 
 Wallet.prototype.setBalance = function(callback) {
-    var parentObj = this;
-    this.balance = this.usdBalance = this.eurBalance = this.btcBalance = this.chfBalance = this.repBalance =  this.gbpBalance = 'loading';
-    ajaxReq.getBalance(parentObj.getAddressString(), function(data) {
-        if (data.error) parentObj.balance = data.msg;
-        else {
-            parentObj.balance = etherUnits.toEther(data.data.balance, 'wei');
-            ajaxReq.getETHvalue(function(data) {
-                parentObj.usdPrice   = etherUnits.toFiat('1', 'ether', data.usd);
-                parentObj.gbpPrice   = etherUnits.toFiat('1', 'ether', data.gbp);
-                parentObj.eurPrice   = etherUnits.toFiat('1', 'ether', data.eur);
-                parentObj.btcPrice   = etherUnits.toFiat('1', 'ether', data.btc);
-                parentObj.chfPrice   = etherUnits.toFiat('1', 'ether', data.chf);
-                parentObj.repPrice   = etherUnits.toFiat('1', 'ether', data.rep);
-
-                parentObj.usdBalance = etherUnits.toFiat(parentObj.balance, 'ether', data.usd);
-                parentObj.gbpBalance = etherUnits.toFiat(parentObj.balance, 'ether', data.gbp);
-                parentObj.eurBalance = etherUnits.toFiat(parentObj.balance, 'ether', data.eur);
-                parentObj.btcBalance = etherUnits.toFiat(parentObj.balance, 'ether', data.btc);
-                parentObj.chfBalance = etherUnits.toFiat(parentObj.balance, 'ether', data.chf);
-                parentObj.repBalance = etherUnits.toFiat(parentObj.balance, 'ether', data.rep);
-                if(callback) callback();
-            });
-        }
-    });
+    fetch(ETHERSCAN_HOST + '/api?module=account&action=balance&address=' + this.getAddressString() + '&tag=latest&apikey=' + ETHERSCAN_API_KEY, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      }
+    })
+    .then(response => response.json())
+    .then(response => {
+      console.log(response);
+      this.balance = response.result;
+      if(callback) callback();
+    })
 }
 Wallet.prototype.getBalance = function() {
     return this.balance;

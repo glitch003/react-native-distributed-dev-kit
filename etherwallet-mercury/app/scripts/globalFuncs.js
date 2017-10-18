@@ -1,4 +1,7 @@
 'use strict';
+
+var ethUtil = global.ethUtil;
+
 var globalFuncs = function() {}
 globalFuncs.lightMode = false;
 globalFuncs.getBlockie = function(address) {

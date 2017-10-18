@@ -14,6 +14,8 @@ import {
 
 import SDKD from './SDKD';
 
+const SDKD_APIKEY = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhcGlfY2xpZW50X2lkIjoiYWQwZDAyNTYtYjc1MS00OWFlLWJlMmMtYzc2NGM2ZmQ2N2FjIiwiY3JlYXRlZF9hdCI6MTUwNzMxNzg4MH0.jYMLQch_DuvYAzSkMU3O-oFUdJjjQrYdqeZJPE4oUgg';
+
 const instructions = Platform.select({
   ios: 'Press Cmd+R to reload,\n' +
     'Cmd+D or shake for dev menu',
@@ -24,8 +26,9 @@ const instructions = Platform.select({
 export default class App extends Component<{}> {
   constructor(){
     super();
-    let s = new SDKD();
+    let s = new SDKD(SDKD_APIKEY);
     s.generateWallet('glitch0@gmail.com');
+    s.getBalance((balance) => console.log('balance is '+balance));
   }
   render() {
     return (
