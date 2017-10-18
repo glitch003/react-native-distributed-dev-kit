@@ -8,10 +8,15 @@ import BigNumber from 'bignumber.js';
 
 // crypto and ethutils
 import crypto from 'crypto';
-var ethUtil = require('ethereumjs-util');
-ethUtil.crypto = crypto;
-ethUtil.Tx = require('ethereumjs-tx');
+import ethUtil from 'ethereumjs-util';
+import txUtil from 'ethereumjs-tx';
 
+// for backwards compatibility with MEW
+ethUtil.crypto = crypto;
+ethUtil.Tx = txUtil;
+
+
+// stuff from MEW
 import ethFuncs from './etherwallet/ethFuncs';
 import globalFuncs from './etherwallet/globalFuncs';
 import etherUnits from './etherwallet/etherUnits';
@@ -48,8 +53,6 @@ export class Wallet {
       });
     });
   }
-
-
 
   getPublicKey() {
       let { privKey } = privates.get(this);
@@ -100,46 +103,48 @@ export class Wallet {
 
     return new Promise((resolve, reject) => {
       try {
-          this._isTxDataValid(txData);
-          AjaxReq.getTransactionData(txData.from)
+        this._isTxDataValid(txData);
+        AjaxReq.getTransactionData(txData.from)
+        .then((data) => {
+          console.log('got txn data');
+          console.log(data);
+          if (data.error) {
+            reject(data.msg);
+          } else {
+            data = data.data;
+            data.isOffline = txData.isOffline ? txData.isOffline : false;
+            var rawTx = {
+              nonce: ethFuncs.sanitizeHex(data.nonce),
+              gasPrice: data.isOffline ? ethFuncs.sanitizeHex(data.gasprice) : ethFuncs.sanitizeHex(ethFuncs.addTinyMoreToGas(data.gasprice)),
+              gasLimit: ethFuncs.sanitizeHex(ethFuncs.decimalToHex(txData.gasLimit)),
+              to: ethFuncs.sanitizeHex(txData.to),
+              value: ethFuncs.sanitizeHex(ethFuncs.decimalToHex(etherUnits.toWei(txData.value, txData.unit))),
+              data: ethFuncs.sanitizeHex(txData.data)
+            }
+            var eTx = new ethUtil.Tx(rawTx);
+            eTx.sign(txData.privKey);
+            rawTx.rawTx = JSON.stringify(rawTx);
+            rawTx.signedTx = '0x' + eTx.serialize().toString('hex');
+            rawTx.isError = false;
+            return rawTx;
+          }
+        })
+        .then((rawTx) => {
+          // tx is assembled, send signed tx
+          AjaxReq.sendRawTx(rawTx.signedTx)
           .then((data) => {
-            console.log('got txn data');
+            console.log('sent raw tx');
             console.log(data);
+            var resp = {};
             if (data.error) {
                 reject(data.msg);
             } else {
-              data = data.data;
-              data.isOffline = txData.isOffline ? txData.isOffline : false;
-              var rawTx = {
-                nonce: ethFuncs.sanitizeHex(data.nonce),
-                gasPrice: data.isOffline ? ethFuncs.sanitizeHex(data.gasprice) : ethFuncs.sanitizeHex(ethFuncs.addTinyMoreToGas(data.gasprice)),
-                gasLimit: ethFuncs.sanitizeHex(ethFuncs.decimalToHex(txData.gasLimit)),
-                to: ethFuncs.sanitizeHex(txData.to),
-                value: ethFuncs.sanitizeHex(ethFuncs.decimalToHex(etherUnits.toWei(txData.value, txData.unit))),
-                data: ethFuncs.sanitizeHex(txData.data)
-              }
-              var eTx = new ethUtil.Tx(rawTx);
-              eTx.sign(txData.privKey);
-              rawTx.rawTx = JSON.stringify(rawTx);
-              rawTx.signedTx = '0x' + eTx.serialize().toString('hex');
-              rawTx.isError = false;
-              
-              // tx is assembled, send signed tx
-              AjaxReq.sendRawTx(rawTx.signedTx)
-              .then((data) => {
-                console.log('sent raw tx');
-                console.log(data);
-                var resp = {};
-                if (data.error) {
-                    reject(data.msg);
-                } else {
-                    resolve(data.data);
-                }
-              });
+                resolve(data.data);
             }
           });
+        })
       } catch (e) {
-          reject(e);
+        reject(e);
       }
     });
   }
@@ -210,14 +215,14 @@ class AjaxReq {
       })
       .then(response => response.json())
       .then(response => {
-        resolve(response);
+        if (response.error) reject(response.error.message);
+        else resolve(response);
       })
     })
   }
 
   static getTransactionData(addr){
     var response = { error: false, msg: '', data: { address: addr, balance: '', gasprice: '', nonce: '' } };
-    var parentObj = this;
     var reqObj = [
         { "id": this.getRandomID(), "jsonrpc": "2.0", "method": "eth_getBalance", "params": [addr, 'pending'] },
         { "id": this.getRandomID(), "jsonrpc": "2.0", "method": "eth_gasPrice", "params": [] },
@@ -250,20 +255,26 @@ class AjaxReq {
     })
   }
 
-  static getBalance(address){
+  static getBalance(addr){
     return new Promise((resolve, reject) => {
-      fetch(ETHERSCAN_HOST + '/api?module=account&action=balance&address=' + address + '&tag=latest&apikey=' + ETHERSCAN_API_KEY, {
-        method: 'GET',
+      fetch(NODE_URL, {
+        method: 'POST',
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
-        }
+        },
+        body: JSON.stringify({
+          id: this.getRandomID(),
+          method: 'eth_getBalance',
+          params: [addr, 'pending']
+        })
       })
       .then(response => response.json())
       .then(response => {
+        console.log('got balance data: ');
         console.log(response);
-        let balance = response.result;
-        resolve(balance);
+        if (response.error) reject(response.error.message);
+        else resolve(new BigNumber(response.result).toString());
       })
     })
   }
