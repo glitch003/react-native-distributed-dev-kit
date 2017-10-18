@@ -12,7 +12,7 @@ import {
   View
 } from 'react-native';
 
-import SDKD from './SDKD';
+import * as SDKD from './SDKD';
 
 const SDKD_APIKEY = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhcGlfY2xpZW50X2lkIjoiYWQwZDAyNTYtYjc1MS00OWFlLWJlMmMtYzc2NGM2ZmQ2N2FjIiwiY3JlYXRlZF9hdCI6MTUwNzMxNzg4MH0.jYMLQch_DuvYAzSkMU3O-oFUdJjjQrYdqeZJPE4oUgg';
 
@@ -26,11 +26,11 @@ const instructions = Platform.select({
 export default class App extends Component<{}> {
   constructor(){
     super();
-    let s = new SDKD(SDKD_APIKEY);
-    s.generateWallet('glitch0@gmail.com')
+    let w = new SDKD.Wallet(SDKD_APIKEY);
+    w.activate('glitch0@gmail.com')
     .then(() => {
       // check balance
-      s.getBalance()
+      w.getBalance()
       .then((balance) => console.log('balance is '+balance));
     });
   }
