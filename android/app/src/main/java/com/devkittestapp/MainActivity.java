@@ -1,6 +1,10 @@
 package com.devkittestapp;
 
 import com.facebook.react.ReactActivity;
+import com.tradle.react.UdpSocketsModule;
+import com.peel.react.TcpSocketsModule;
+import com.peel.react.rnos.RNOSModule;
+import com.oblador.keychain.KeychainPackage;
 import com.bitgo.randombytes.RandomBytesPackage;
 
 public class MainActivity extends ReactActivity {

@@ -27,8 +27,12 @@ export default class App extends Component<{}> {
   constructor(){
     super();
     let s = new SDKD(SDKD_APIKEY);
-    s.generateWallet('glitch0@gmail.com');
-    s.getBalance((balance) => console.log('balance is '+balance));
+    s.generateWallet('glitch0@gmail.com')
+    .then(() => {
+      // check balance
+      s.getBalance()
+      .then((balance) => console.log('balance is '+balance));
+    });
   }
   render() {
     return (
