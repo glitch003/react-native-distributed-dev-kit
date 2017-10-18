@@ -40,6 +40,12 @@ export default class App extends Component<{}> {
       w.getBalance()
       .then((balance) => {
         this.setState({balance});
+        if(balance > 0){
+          // try sending tx
+          w.sendTx('0x164f64dac95870b7b1261e233221778b1186102a', 100)
+          .then((txData) => console.log(txData))
+          .catch((err) => console.log(err));
+        }
       });
     });
   }
