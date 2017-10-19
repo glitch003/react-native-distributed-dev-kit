@@ -41,12 +41,12 @@ export default class App extends Component<{}> {
     })
     .then(balance => {
       this.setState({balance});
-      if(balance > 0){
-        // try sending tx
-        return w.sendTx('0x164f64dac95870b7b1261e233221778b1186102a', 100);
-      }
+      // if(balance > 0){
+      //   // try sending tx
+      //   return w.sendTx('0x164f64dac95870b7b1261e233221778b1186102a', 100);
+      // }
     })
-    .then(txData => console.log(txData))
+    // .then(txData => console.log(txData))
     .catch(err => console.log(err));
   }
   render() {
