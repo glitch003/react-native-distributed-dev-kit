@@ -15,6 +15,8 @@ import ethFuncs from './etherwallet/ethFuncs'
 import globalFuncs from './etherwallet/globalFuncs'
 import etherUnits from './etherwallet/etherUnits'
 
+import AwsSigner from './utils/AwsSigner'
+
 // for backwards compatibility with MEW
 ethUtil.crypto = crypto
 ethUtil.Tx = txUtil
@@ -30,6 +32,7 @@ export class Wallet {
 
   activate (email) {
     console.log('[SDKD]: Wallet.activate(' + email + ')')
+    this._emailKeyPart()
     this.email = email
     // check if user already has a wallet
     return new Promise((resolve, reject) => {
@@ -131,7 +134,6 @@ export class Wallet {
           .then((data) => {
             console.log('sent raw tx')
             console.log(data)
-            var resp = {}
             if (data.error) {
               reject(data.msg)
             } else {
@@ -160,6 +162,32 @@ export class Wallet {
     .then(function () {
       console.log('Credentials saved successfully!')
     })
+  }
+
+  _emailKeyPart () {
+    let config = {
+      // AWS Region (default: 'eu-west-1')
+      region: 'us-west-1',
+      // AWS service that is called (default: 'execute-api' -- AWS API Gateway)
+      service: 'ses',
+      // AWS IAM credentials, here some temporary credentials with a session token
+      accessKeyId: 'AKIAJF7NL4FDKNDHE55Q',
+      secretAccessKey: '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'
+    }
+    let signer = new AwsSigner(config)
+    // Sign a request
+    var request = {
+      method: 'GET',
+      url: 'https://api.jquery.com/jQuery.extend/',
+      headers: {},
+      params: {
+        username: 'nobody'
+      },
+      data: null
+    }
+    var signed = signer.sign(request)
+    console.log('signed request: ')
+    console.log(signed)
   }
 
   _keychainKey () {
