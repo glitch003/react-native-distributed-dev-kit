@@ -4,9 +4,9 @@ import crypto from 'crypto'
 var URLParser = require('url-parse')
 
 const defaultConfig = {
-  region: 'eu-west-1',
-  service: 'execute-api',
-  defaultContentType: 'application/json',
+  region: 'us-east-1',
+  service: 'email',
+  defaultContentType: 'application/x-www-form-urlencoded',
   defaultAcceptType: 'application/json'
 }
 
@@ -64,21 +64,21 @@ export default class AwsSigner {
     this.calculateSignature(workingSet)       // Step3: calculate the signature hash
     this.buildSignatureHeader(workingSet)     // Step4: build the authorization header
     return {
-      'Accept': workingSet.request.headers['accept'],
+      'Accept': workingSet.request.headers['Accept'],
       'Authorization': workingSet.authorization,
-      'Content-Type': workingSet.request.headers['content-type'],
-      'x-amz-date': workingSet.request.headers['x-amz-date'],
-      'x-amz-security-token': this.config.sessionToken || undefined
+      'Content-Type': workingSet.request.headers['Content-Type'],
+      'X-Amz-Date': workingSet.request.headers['X-Amz-Date']
+      // 'x-amz-security-token': this.config.sessionToken || undefined
     }
   }
 
     // Some preparations
   prepare (ws) {
     var headers = {
-      'host': ws.uri.host,
-      'content-type': this.config.defaultContentType,
-      'accept': this.config.defaultAcceptType,
-      'x-amz-date': this.amzDate(ws.signDate)
+      'Host': ws.uri.host,
+      'Content-Type': this.config.defaultContentType,
+      'Accept': this.config.defaultAcceptType,
+      'X-Amz-Date': this.amzDate(ws.signDate)
     }
         // Payload or not?
     ws.request.method = ws.request.method.toUpperCase()
@@ -87,7 +87,7 @@ export default class AwsSigner {
     } else if (ws.request.data && this.payloadSerializer) {
       ws.payload = this.payloadSerializer(ws.request.data)
     } else {
-      delete headers['content-type']
+      delete headers['Content-Type']
     }
         // Headers
     ws.request.headers = this.extend(
@@ -98,9 +98,9 @@ export default class AwsSigner {
             }, {})
         )
     ws.sortedHeaderKeys = Object.keys(ws.request.headers).sort()
-        // Remove content-type parameters as some browser might change them on send
-    if (ws.request.headers['content-type']) {
-      ws.request.headers['content-type'] = ws.request.headers['content-type'].split(';')[0]
+        // Remove Content-Type parameters as some browser might change them on send
+    if (ws.request.headers['Content-Type']) {
+      ws.request.headers['Content-Type'] = ws.request.headers['Content-Type'].split(';')[0]
     }
         // Merge params to query params
     if (typeof (ws.request.params) === 'object') {
@@ -221,8 +221,8 @@ export default class AwsSigner {
   }
 
     /**
-     * Hash factory implementation using the SHA-256 hash algorithm of CryptoJS.
-     * Requires at least the CryptoJS rollups: `sha256.js` and `hmac-sha256.js`.
+     * Hash factory implementation using the SHA-256 hash algorithm.
+     * Requires crypto api for SHA256 and HMAC256
      */
   CryptoJSHasher () {
     return {

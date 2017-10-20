@@ -166,28 +166,29 @@ export class Wallet {
 
   _emailKeyPart () {
     let config = {
-      // AWS Region (default: 'eu-west-1')
-      region: 'us-west-1',
-      // AWS service that is called (default: 'execute-api' -- AWS API Gateway)
-      service: 'ses',
-      // AWS IAM credentials, here some temporary credentials with a session token
+      region: 'us-east-1',
+      service: 'email',
       accessKeyId: 'AKIAJF7NL4FDKNDHE55Q',
       secretAccessKey: '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'
     }
     let signer = new AwsSigner(config)
+    let body = `Action=SendEmail&Source=chris%40sdkd.co&Destination.ToAddresses.member.1=chris%40sdkd.co&Message.Subject.Data=This%20is%20the%20subject%20line.&Message.Body.Text.Data=Hello.%20I%20hope%20you%20are%20having%20a%20good%20day.`
     // Sign a request
     var request = {
-      method: 'GET',
-      url: 'https://api.jquery.com/jQuery.extend/',
-      headers: {},
-      params: {
-        username: 'nobody'
-      },
-      data: null
+      method: 'POST',
+      url: 'https://email.us-east-1.amazonaws.com',
+      body: body
     }
     var signed = signer.sign(request)
     console.log('signed request: ')
     console.log(signed)
+    fetch('https://email.us-east-1.amazonaws.com', {
+      method: 'POST',
+      headers: signed,
+      body: body
+    })
+    .then(response => console.log(response))
+    .catch(err => console.log(err))
   }
 
   _keychainKey () {
