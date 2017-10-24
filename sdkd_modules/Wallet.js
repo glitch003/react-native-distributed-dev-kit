@@ -57,30 +57,35 @@ export class Wallet {
             resolve()
           })
         }
-        console.log('wallet address: ' + this.getAddressString())
       })
       .catch(err => reject(err))
     })
   }
 
   getPublicKey () {
+    console.log('[SDKD]: getPublicKey')
     let { privKey } = privates.get(this)
     return ethUtil.privateToPublic(privKey)
   }
   getPublicKeyString () {
+    console.log('[SDKD]: getPublicKeyString')
     return '0x' + this.getPublicKey().toString('hex')
   }
   getAddress () {
+    console.log('[SDKD]: getAddress')
     let { privKey } = privates.get(this)
     return ethUtil.privateToAddress(privKey)
   }
   getAddressString () {
+    console.log('[SDKD]: getAddressString')
     return '0x' + this.getAddress().toString('hex')
   }
   getChecksumAddressString () {
+    console.log('[SDKD]: getChecksumAddressString')
     return ethUtil.toChecksumAddress(this.getAddressString())
   }
   getBalance () {
+    console.log('[SDKD]: getBalance')
     console.log('getting balance, addr string is ' + this.getAddressString())
     return AjaxReq.getBalance(this.getAddressString())
   }
@@ -96,6 +101,7 @@ export class Wallet {
   }
 
   sendTx (to, value) {
+    console.log('[SDKD]: sendTx')
     let { privKey } = privates.get(this)
 
     // try generating a txn
@@ -160,6 +166,7 @@ export class Wallet {
   // private
 
   _authenticateUser () {
+    console.log('[SDKD]: _authenticateUser')
     let sig = this._signEmailForAuth()
     return new Promise((resolve, reject) => {
       fetch(global.sdkdConfig.sdkdHost + '/sessions', {
@@ -187,11 +194,13 @@ export class Wallet {
   }
 
   _newPrivateKey () {
+    console.log('[SDKD]: _newPrivateKey')
     let privKey = ethUtil.crypto.randomBytes(32)
     this._storePrivateVar('privKey', privKey)
   }
 
   _saveWallet () {
+    console.log('[SDKD]: _saveWallet')
     let { privKey } = privates.get(this)
     privKey = privKey.toString('hex')
     Keychain
@@ -202,6 +211,7 @@ export class Wallet {
   }
 
   _sendWalletRecoveryParts () {
+    console.log('[SDKD]: _sendWalletRecoveryParts')
     let { privKey } = privates.get(this)
     let privKeyHex = privKey.toString('hex')
     let s = new SSSS()
@@ -220,12 +230,14 @@ export class Wallet {
   }
 
   _emailKeyPart (part) {
+    console.log('[SDKD]: _emailKeyPart')
     let body = 'Your recovery key is ' + part
     this._sendEmail(this.email, 'Your recovery key for SDKD', body)
     console.log('emailed key part 0')
   }
 
   _uploadKeyPart (part) {
+    console.log('[SDKD]: _uploadKeyPart')
     fetch(global.sdkdConfig.sdkdHost + '/user_key_parts', {
       method: 'POST',
       headers: {
@@ -289,7 +301,7 @@ export class Wallet {
   }
 
   _registerUser () {
-    console.log('registering user')
+    console.log('[SDKD]: _registerUser')
     // register the user
     return new Promise((resolve, reject) => {
         fetch(global.sdkdConfig.sdkdHost + '/users', {
@@ -318,6 +330,7 @@ export class Wallet {
   }
 
   _signEmailForAuth () {
+    console.log('[SDKD]: _signEmailForAuth')
     let { privKey } = privates.get(this)
 
     let nonce = crypto.randomBytes(4).toString('hex')
@@ -355,6 +368,7 @@ export class Wallet {
   }
 
   _storePrivateVar (key, value) {
+    console.log('[SDKD]: _storePrivateVar')
     let existingPrivates = privates.get(this)
     if (existingPrivates === undefined) {
       existingPrivates = {}

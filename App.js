@@ -39,9 +39,11 @@ export default class App extends React.Component {
     .then(() => {
       this.setState({wallet: w})
       // check balance
+      console.log('[SDKD]: checking balance')
       return w.getBalance()
     })
     .then(balance => {
+      console.log('[SDKD]: setting balance')
       this.setState({balance})
       // if(balance > 0){
       //   // try sending tx
