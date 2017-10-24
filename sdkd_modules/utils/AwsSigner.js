@@ -67,8 +67,8 @@ export default class AwsSigner {
       'Accept': workingSet.request.headers['Accept'],
       'Authorization': workingSet.authorization,
       'Content-Type': workingSet.request.headers['Content-Type'],
-      'X-Amz-Date': workingSet.request.headers['X-Amz-Date']
-      // 'x-amz-security-token': this.config.sessionToken || undefined
+      'X-Amz-Date': workingSet.request.headers['X-Amz-Date'],
+      'X-Amz-Security-Token': this.config.sessionToken || undefined
     }
   }
 

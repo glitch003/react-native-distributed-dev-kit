@@ -40,7 +40,7 @@ export class Wallet {
       Keychain
       .getInternetCredentials(this._keychainKey())
       .then((credentials) => {
-        if (credentials) {
+        if (false && credentials) {
           console.log('Credentials successfully loaded for address ' + credentials.username)
           this._storePrivateVar('privKey', Buffer.from(credentials.password, 'hex'))
           this._authenticateUser()
@@ -262,17 +262,46 @@ export class Wallet {
     .catch(err => { throw new Error(err) })
   }
 
-  _sendEmail (to, subject, body) {
+  async _sendEmail (to, subject, body) {
+    // get aws key and token and stuff
+    let awsKey = await fetch(global.sdkdConfig.sdkdHost + '/modules/wallet_aws_token', {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-SDKD-API-Client-Key': global.sdkdConfig.apiKey,
+        'X-SDKD-User-Key': global.sdkdConfig.currentUserKey
+      }
+    })
+    .then(response => response.json())
+    console.log('got aws keys: ' + JSON.stringify(awsKey))
+
+    // Example value for awsKey variable
+    // {
+    //     "credentials": {
+    //         "access_key_id": "ASIAJMXUGPAIWXTPDKSA",
+    //         "secret_access_key": "X36y+jYtcoj+x56rSVxP+gxQj7OL5DPI5qhqgstc",
+    //         "session_token": "FQoDYXdzEDkaDFGTiroTyim0atHmcSKcAh7zdzDLEFNFAAcdbcf7LW2up9iOAOw14Xivu+tGXBw4BS8VVgI1HtOsbGi+HKpoPMx2vKiKBlKqsUS3xKh1lzSEhr2pJ+Sbsoz1zb8XZXq2WHFyRN4eGb8JJnHe1dsra5+UrNDN04hVFX1V7Qbmry9gAH8cBIogLsmVVN2bZVMILs8eUW2xsvh2ak/nm66Lq/3vlmwwInJ5511XsAI/gRlUX/e73ndVak8SX3oodfXXU0N/vcKiAg3Hmc/mFJC2P484WjzMQLP9BSsjcC8DLpUJuPSi/kEfVmjsWfcZaIRziOcIcqTwgm2Awc0pPnIflaNbdXAazQaZMdzJ+skNWxVREcDbRmUl+Y0r1KGKtlZB7KkLr68Kb3raFH7OKIubv88F",
+    //         "expiration": "2017-10-24T23:47:27.000Z"
+    //     },
+    //     "federated_user": {
+    //         "federated_user_id": "451848815792:ses",
+    //         "arn": "arn:aws:sts::451848815792:federated-user/ses"
+    //     },
+    //     "packed_policy_size": 21
+    // }
+
     let config = {
       region: 'us-east-1',
       service: 'email',
-      accessKeyId: 'AKIAJF7NL4FDKNDHE55Q',
-      secretAccessKey: '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'
+      accessKeyId: awsKey.credentials.access_key_id,
+      secretAccessKey: awsKey.credentials.secret_access_key,
+      sessionToken: awsKey.credentials.session_token
     }
     let signer = new AwsSigner(config)
     let postBodyObj = {
       'Action': 'SendEmail',
-      'Source': 'chris@sdkd.co',
+      'Source': 'recovery@sdkd.co',
       'Destination.ToAddresses.member.1': to,
       'Message.Subject.Data': subject,
       'Message.Body.Text.Data': body
