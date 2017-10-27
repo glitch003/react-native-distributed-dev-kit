@@ -3,7 +3,7 @@
  * https://github.com/facebook/react-native
  * @flow
  */
-
+import './shim.js'
 import React, { Component } from 'react'
 import {
   Platform,
@@ -36,8 +36,10 @@ export default class App extends React.Component {
   componentWillMount () {
     SDKD.Config.init(SDKD_APIKEY)
     let w = new SDKDMod.Wallet()
-    w.activate('glitch0@gmail.com')
+    w.activateFromRecoveryPhrase('glitch0@gmail.com', 'absent frog gather candy wrestle topic visa run bacon ranch wet border lens onion holiday middle wagon attack noodle hundred explain toss honey balance')
+    // w.activate({email: 'glitch0@gmail.com', recoveryType: 'phrase'})
     .then(() => {
+      // console.log('recovery phrase is ' + phrase)
       this.setState({wallet: w})
       // check balance
       console.log('[SDKD]: checking balance')

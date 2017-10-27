@@ -17,6 +17,9 @@ import etherUnits from './etherwallet/etherUnits'
 import AwsSigner from './utils/AwsSigner'
 import SSSS from './utils/SSSS'
 
+// 12 or 24 word recovery phrase
+import bip39 from 'bip39'
+
 // for backwards compatibility with MEW
 ethUtil.crypto = crypto
 ethUtil.Tx = txUtil
@@ -31,15 +34,20 @@ export class Wallet {
     this.apiKey = apiKey
   }
 
-  activate (email) {
-    console.log('[SDKD]: Wallet.activate(' + email + ')')
-    this.email = email
+  // config object:
+  // {
+  //   "email": (Required) <the user's email address>,
+  //   "recoveryType": (Optional) <one of either "email" for 2 factor email recovery or "phrase" for 24 word passphrase
+  // }
+  activate (config) {
+    console.log('[SDKD]: Wallet.activate(' + JSON.stringify(config) + ')')
+    this.email = config.email
     // check if user already has a wallet
     return new Promise((resolve, reject) => {
       Keychain
       .getInternetCredentials(this._keychainKey())
       .then((credentials) => {
-        if (credentials) {
+        if (false && credentials) {
           console.log('Credentials successfully loaded for address ' + credentials.username)
           this._storePrivateVar('privKey', Buffer.from(credentials.password, 'hex'))
           this._authenticateUser()
@@ -52,8 +60,18 @@ export class Wallet {
           .then(jwt => {
             this._newPrivateKey()
             this._saveWallet()
-            this._sendWalletRecoveryParts()
-            resolve()
+            if (config.recoveryType === undefined || config.recoveryType === 'email') {
+              this._sendWalletRecoveryParts()
+              resolve()
+            } else {
+              // upload key part since it includes the address and we need that for future auths
+              this._uploadKeyPart('<RecoveryPhraseChosen>')
+              // resolve with recovery mnemonic, and priv key is never exposed again
+              let { privKey } = privates.get(this)
+              privKey = privKey.toString('hex')
+              let mnemonic = bip39.entropyToMnemonic(privKey)
+              resolve(mnemonic)
+            }
           })
         }
       })
@@ -160,6 +178,15 @@ export class Wallet {
         reject(e)
       }
     })
+  }
+
+  activateFromRecoveryPhrase (email, phrase) {
+    this.email = email
+    let hexPrivKey = bip39.mnemonicToEntropy(phrase)
+    let privKey = Buffer.from(hexPrivKey, 'hex')
+    this._storePrivateVar('privKey', privKey)
+    this._saveWallet()
+    return this._authenticateUser()
   }
 
   // private
