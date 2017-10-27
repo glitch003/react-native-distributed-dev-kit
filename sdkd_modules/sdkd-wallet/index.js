@@ -29,7 +29,7 @@ const SDKD_HOST = 'https://sdk-d.herokuapp.com'
 
 const privates = new WeakMap()
 
-export class Wallet {
+export default class SDKDWallet {
   constructor (apiKey) {
     this.apiKey = apiKey
   }

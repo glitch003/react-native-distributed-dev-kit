@@ -1,4 +1,4 @@
-export class Config {
+export default class SDKDConfig {
   static init (apiKey) {
     global.sdkdConfig = {
       apiKey: apiKey,
