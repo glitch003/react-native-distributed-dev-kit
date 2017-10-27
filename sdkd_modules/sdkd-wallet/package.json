@@ -1,6 +1,6 @@
 {
   "name": "@sdkd/sdkd-wallet",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "dependencies": {
     "@sdkd/sdkd": "0.0.1",
     "bignumber.js": "^4.1.0",
