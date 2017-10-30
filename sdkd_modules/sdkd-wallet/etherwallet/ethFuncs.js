@@ -2,6 +2,7 @@
 
 import BigNumber from 'bignumber.js';
 import etherUnits from './etherUnits';
+import ethUtil from 'ethereumjs-util'
 
 var ethFuncs = function() {}
 ethFuncs.gasAdjustment = 21;

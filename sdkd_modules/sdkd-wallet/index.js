@@ -38,6 +38,7 @@ export default class SDKDWallet {
       this.debug = config.debug
     }
     this._debugLog('[SDKDWallet]: new Wallet(' + JSON.stringify(config) + ')')
+    this.ajaxReq = new AjaxReq({debug: this.debug})
   }
 
   // config object:
@@ -54,7 +55,7 @@ export default class SDKDWallet {
       .getInternetCredentials(this._keychainKey())
       .then((credentials) => {
         if (credentials) {
-          this._debugLog('Credentials successfully loaded for address ' + credentials.username)
+          this._debugLog('[SDKDWallet]: Credentials successfully loaded for email ' + credentials.username)
           this._storePrivateVar('privKey', Buffer.from(credentials.password, 'hex'))
           this._authenticateUser()
           .then(jwt => {
@@ -108,9 +109,8 @@ export default class SDKDWallet {
     return ethUtil.toChecksumAddress(this.getAddressString())
   }
   getBalance () {
-    this._debugLog('[SDKDWallet]: getBalance')
-    this._debugLog('getting balance, addr string is ' + this.getAddressString())
-    return AjaxReq.getBalance(this.getAddressString())
+    this._debugLog('[SDKDWallet]: getBalance, addr string is ' + this.getAddressString())
+    return this.ajaxReq.getBalance(this.getAddressString())
   }
 
   renderAddressQRCode () {
@@ -142,7 +142,7 @@ export default class SDKDWallet {
     return new Promise((resolve, reject) => {
       try {
         this._isTxDataValid(txData)
-        AjaxReq.getTransactionData(txData.from)
+        this.ajaxReq.getTransactionData(txData.from)
         .then((data) => {
           this._debugLog('got txn data')
           this._debugLog(data)
@@ -164,12 +164,13 @@ export default class SDKDWallet {
             rawTx.rawTx = JSON.stringify(rawTx)
             rawTx.signedTx = '0x' + eTx.serialize().toString('hex')
             rawTx.isError = false
+            
             return rawTx
           }
         })
         .then((rawTx) => {
           // tx is assembled, send signed tx
-          AjaxReq.sendRawTx(rawTx.signedTx)
+          this.ajaxReq.sendRawTx(rawTx.signedTx)
           .then((data) => {
             this._debugLog('sent raw tx')
             this._debugLog(data)
@@ -236,7 +237,7 @@ export default class SDKDWallet {
     let { privKey } = privates.get(this)
     privKey = privKey.toString('hex')
     Keychain
-    .setInternetCredentials(this._keychainKey(), this.getAddressString(), privKey)
+    .setInternetCredentials(this._keychainKey(), privKey)
     .then(function () {
       this._debugLog('Credentials saved successfully!')
     })
@@ -455,11 +456,16 @@ export default class SDKDWallet {
 }
 
 class AjaxReq {
-  static getRandomID () {
+  constructor (config) {
+    if (config !== undefined) {
+      this.debug = config.debug
+    }
+  }
+  getRandomID () {
     return ethUtil.crypto.randomBytes(16).toString('hex')
   }
 
-  static sendRawTx (signedTx) {
+  sendRawTx (signedTx) {
     return new Promise((resolve, reject) => {
       fetch(global.sdkdConfig.moduleConfig.wallet.ethNodeHost, {
         method: 'POST',
@@ -483,7 +489,7 @@ class AjaxReq {
     })
   }
 
-  static getTransactionData (addr) {
+  getTransactionData (addr) {
     var response = { error: false, msg: '', data: { address: addr, balance: '', gasprice: '', nonce: '' } }
     var reqObj = [
         { 'id': this.getRandomID(), 'jsonrpc': '2.0', 'method': 'eth_getBalance', 'params': [addr, 'pending'] },
@@ -501,8 +507,8 @@ class AjaxReq {
       })
       .then(response => response.json())
       .then(data => {
-        console.log('got txn data: ')
-        console.log(data)
+        this._debugLog('got txn data: ')
+        this._debugLog(data)
         for (var i in data) {
           if (data[i].error) {
             reject(data[i].error.message)
@@ -518,7 +524,7 @@ class AjaxReq {
     })
   }
 
-  static getBalance (addr) {
+  getBalance (addr) {
     return new Promise((resolve, reject) => {
       fetch(global.sdkdConfig.moduleConfig.wallet.ethNodeHost, {
         method: 'POST',
@@ -535,12 +541,18 @@ class AjaxReq {
       })
       .then(response => response.json())
       .then(response => {
-        console.log('got balance data: ')
-        console.log(response)
+        this._debugLog('got balance data: ')
+        this._debugLog(response)
         if (response.error) reject(response.error.message)
         else resolve(new BigNumber(response.result).toString())
       })
       .catch(err => reject(err))
     })
+  }
+
+  _debugLog (toLog) {
+    if (this.debug === true) {
+      console.log(toLog)
+    }
   }
 }
