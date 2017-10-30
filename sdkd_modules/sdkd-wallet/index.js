@@ -17,21 +17,27 @@ import etherUnits from './etherwallet/etherUnits'
 import AwsSigner from './utils/AwsSigner'
 import SSSS from './utils/SSSS'
 
-// 12 or 24 word recovery phrase
+// 24 word recovery phrase
 import bip39 from 'bip39'
 
 // for backwards compatibility with MEW
 ethUtil.crypto = crypto
 ethUtil.Tx = txUtil
 
-const NODE_URL = 'https://api.myetherapi.com/rop'
-const SDKD_HOST = 'https://sdk-d.herokuapp.com'
-
 const privates = new WeakMap()
 
 export default class SDKDWallet {
-  constructor (apiKey) {
-    this.apiKey = apiKey
+  constructor (config) {
+    if (global.sdkdConfig === undefined) {
+      throw new Error('You must run SDKDConfig.init before using any SDKD modules')
+    }
+    global.sdkdConfig.moduleConfig.wallet = {
+      ethNodeHost: 'https://api.myetherapi.com/rop'
+    }
+    if (config !== undefined) {
+      this.debug = config.debug
+    }
+    this._debugLog('[SDKDWallet]: new Wallet(' + JSON.stringify(config) + ')')
   }
 
   // config object:
@@ -40,15 +46,15 @@ export default class SDKDWallet {
   //   "recoveryType": (Optional) <one of either "email" for 2 factor email recovery or "phrase" for 24 word passphrase
   // }
   activate (config) {
-    console.log('[SDKD]: Wallet.activate(' + JSON.stringify(config) + ')')
+    this._debugLog('[SDKDWallet]: Wallet.activate(' + JSON.stringify(config) + ')')
     this.email = config.email
     // check if user already has a wallet
     return new Promise((resolve, reject) => {
       Keychain
       .getInternetCredentials(this._keychainKey())
       .then((credentials) => {
-        if (false && credentials) {
-          console.log('Credentials successfully loaded for address ' + credentials.username)
+        if (credentials) {
+          this._debugLog('Credentials successfully loaded for address ' + credentials.username)
           this._storePrivateVar('privKey', Buffer.from(credentials.password, 'hex'))
           this._authenticateUser()
           .then(jwt => {
@@ -80,30 +86,30 @@ export default class SDKDWallet {
   }
 
   getPublicKey () {
-    console.log('[SDKD]: getPublicKey')
+    this._debugLog('[SDKDWallet]: getPublicKey')
     let { privKey } = privates.get(this)
     return ethUtil.privateToPublic(privKey)
   }
   getPublicKeyString () {
-    console.log('[SDKD]: getPublicKeyString')
+    this._debugLog('[SDKDWallet]: getPublicKeyString')
     return '0x' + this.getPublicKey().toString('hex')
   }
   getAddress () {
-    console.log('[SDKD]: getAddress')
+    this._debugLog('[SDKDWallet]: getAddress')
     let { privKey } = privates.get(this)
     return ethUtil.privateToAddress(privKey)
   }
   getAddressString () {
-    console.log('[SDKD]: getAddressString')
+    this._debugLog('[SDKDWallet]: getAddressString')
     return '0x' + this.getAddress().toString('hex')
   }
   getChecksumAddressString () {
-    console.log('[SDKD]: getChecksumAddressString')
+    this._debugLog('[SDKDWallet]: getChecksumAddressString')
     return ethUtil.toChecksumAddress(this.getAddressString())
   }
   getBalance () {
-    console.log('[SDKD]: getBalance')
-    console.log('getting balance, addr string is ' + this.getAddressString())
+    this._debugLog('[SDKDWallet]: getBalance')
+    this._debugLog('getting balance, addr string is ' + this.getAddressString())
     return AjaxReq.getBalance(this.getAddressString())
   }
 
@@ -118,7 +124,7 @@ export default class SDKDWallet {
   }
 
   sendTx (to, value) {
-    console.log('[SDKD]: sendTx')
+    this._debugLog('[SDKDWallet]: sendTx')
     let { privKey } = privates.get(this)
 
     // try generating a txn
@@ -138,8 +144,8 @@ export default class SDKDWallet {
         this._isTxDataValid(txData)
         AjaxReq.getTransactionData(txData.from)
         .then((data) => {
-          console.log('got txn data')
-          console.log(data)
+          this._debugLog('got txn data')
+          this._debugLog(data)
           if (data.error) {
             reject(data.msg)
           } else {
@@ -165,8 +171,8 @@ export default class SDKDWallet {
           // tx is assembled, send signed tx
           AjaxReq.sendRawTx(rawTx.signedTx)
           .then((data) => {
-            console.log('sent raw tx')
-            console.log(data)
+            this._debugLog('sent raw tx')
+            this._debugLog(data)
             if (data.error) {
               reject(data.msg)
             } else {
@@ -192,7 +198,7 @@ export default class SDKDWallet {
   // private
 
   _authenticateUser () {
-    console.log('[SDKD]: _authenticateUser')
+    this._debugLog('[SDKDWallet]: _authenticateUser')
     let sig = this._signEmailForAuth()
     return new Promise((resolve, reject) => {
       fetch(global.sdkdConfig.sdkdHost + '/sessions', {
@@ -206,13 +212,13 @@ export default class SDKDWallet {
       })
       .then(response => response.json())
       .then(response => {
-        console.log(response)
+        this._debugLog(response)
         if (response.error) {
           reject(response.error)
         }
         // save JWT
         global.sdkdConfig.currentUserKey = response.jwt
-        console.log(response)
+        this._debugLog(response)
         resolve(response.jwt)
       })
       .catch(err => { reject(err) })
@@ -220,24 +226,24 @@ export default class SDKDWallet {
   }
 
   _newPrivateKey () {
-    console.log('[SDKD]: _newPrivateKey')
+    this._debugLog('[SDKDWallet]: _newPrivateKey')
     let privKey = ethUtil.crypto.randomBytes(32)
     this._storePrivateVar('privKey', privKey)
   }
 
   _saveWallet () {
-    console.log('[SDKD]: _saveWallet')
+    this._debugLog('[SDKDWallet]: _saveWallet')
     let { privKey } = privates.get(this)
     privKey = privKey.toString('hex')
     Keychain
     .setInternetCredentials(this._keychainKey(), this.getAddressString(), privKey)
     .then(function () {
-      console.log('Credentials saved successfully!')
+      this._debugLog('Credentials saved successfully!')
     })
   }
 
   _sendWalletRecoveryParts () {
-    console.log('[SDKD]: _sendWalletRecoveryParts')
+    this._debugLog('[SDKDWallet]: _sendWalletRecoveryParts')
     let { privKey } = privates.get(this)
     let privKeyHex = privKey.toString('hex')
     let s = new SSSS()
@@ -256,14 +262,14 @@ export default class SDKDWallet {
   }
 
   _emailKeyPart (part) {
-    console.log('[SDKD]: _emailKeyPart')
+    this._debugLog('[SDKDWallet]: _emailKeyPart')
     let body = 'Your recovery key is ' + part
     this._sendEmail(this.email, 'Your recovery key for SDKD', body)
-    console.log('emailed key part 0')
+    this._debugLog('emailed key part 0')
   }
 
   _uploadKeyPart (part) {
-    console.log('[SDKD]: _uploadKeyPart')
+    this._debugLog('[SDKDWallet]: _uploadKeyPart')
     fetch(global.sdkdConfig.sdkdHost + '/user_key_parts', {
       method: 'POST',
       headers: {
@@ -279,11 +285,11 @@ export default class SDKDWallet {
     })
     .then(response => response.json())
     .then(response => {
-      console.log(response)
+      this._debugLog(response)
       if (response.error) {
         throw new Error(response.error)
       }
-      console.log('uploaded key part 1')
+      this._debugLog('uploaded key part 1')
     })
     .catch(err => { throw new Error(err) })
   }
@@ -300,7 +306,7 @@ export default class SDKDWallet {
       }
     })
     .then(response => response.json())
-    console.log('got aws keys: ' + JSON.stringify(awsKey))
+    this._debugLog('got aws keys: ' + JSON.stringify(awsKey))
 
     // Example value for awsKey variable
     // {
@@ -342,21 +348,21 @@ export default class SDKDWallet {
       url: 'https://email.us-east-1.amazonaws.com',
       body: postBody
     }
-    console.log(request)
+    this._debugLog(request)
     var signed = signer.sign(request)
-    console.log('signed request: ')
-    console.log(signed)
+    this._debugLog('signed request: ')
+    this._debugLog(signed)
     fetch('https://email.us-east-1.amazonaws.com', {
       method: 'POST',
       headers: signed,
       body: postBody
     })
-    .then(response => console.log(response))
+    .then(response => this._debugLog(response))
     .catch(err => { throw new Error(err) })
   }
 
   _registerUser () {
-    console.log('[SDKD]: _registerUser')
+    this._debugLog('[SDKDWallet]: _registerUser')
     // register the user
     return new Promise((resolve, reject) => {
         fetch(global.sdkdConfig.sdkdHost + '/users', {
@@ -372,7 +378,7 @@ export default class SDKDWallet {
       })
       .then(response => response.json())
       .then(response => {
-        console.log(response)
+        this._debugLog(response)
         if (response.error) {
           reject(response.error)
         }
@@ -384,8 +390,14 @@ export default class SDKDWallet {
     })
   }
 
+  _debugLog (toLog) {
+    if (this.debug === true) {
+      console.log(toLog)
+    }
+  }
+
   _signEmailForAuth () {
-    console.log('[SDKD]: _signEmailForAuth')
+    this._debugLog('[SDKDWallet]: _signEmailForAuth')
     let { privKey } = privates.get(this)
 
     let nonce = crypto.randomBytes(4).toString('hex')
@@ -423,7 +435,7 @@ export default class SDKDWallet {
   }
 
   _storePrivateVar (key, value) {
-    console.log('[SDKD]: _storePrivateVar')
+    this._debugLog('[SDKDWallet]: _storePrivateVar')
     let existingPrivates = privates.get(this)
     if (existingPrivates === undefined) {
       existingPrivates = {}
@@ -449,7 +461,7 @@ class AjaxReq {
 
   static sendRawTx (signedTx) {
     return new Promise((resolve, reject) => {
-      fetch(global.sdkdConfig.ethNodeHost, {
+      fetch(global.sdkdConfig.moduleConfig.wallet.ethNodeHost, {
         method: 'POST',
         headers: {
           'Accept': 'application/json',
@@ -479,7 +491,7 @@ class AjaxReq {
         { 'id': this.getRandomID(), 'jsonrpc': '2.0', 'method': 'eth_getTransactionCount', 'params': [addr, 'pending'] }
     ]
     return new Promise((resolve, reject) => {
-      fetch(global.sdkdConfig.ethNodeHost, {
+      fetch(global.sdkdConfig.moduleConfig.wallet.ethNodeHost, {
         method: 'POST',
         headers: {
           'Accept': 'application/json',
@@ -508,7 +520,7 @@ class AjaxReq {
 
   static getBalance (addr) {
     return new Promise((resolve, reject) => {
-      fetch(global.sdkdConfig.ethNodeHost, {
+      fetch(global.sdkdConfig.moduleConfig.wallet.ethNodeHost, {
         method: 'POST',
         headers: {
           'Accept': 'application/json',
