@@ -1,5 +1,6 @@
 {
   "name": "@sdkd/sdkd-wallet",
+  "main": "index.js",
   "version": "0.0.13",
   "dependencies": {
     "@sdkd/sdkd": "0.0.1",
