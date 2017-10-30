@@ -8,6 +8,8 @@ import SDKDWallet from '@sdkd/sdkd-wallet'
 // Note: test renderer must be required after react-native.
 import renderer from 'react-test-renderer'
 
+import * as Keychain from 'react-native-keychain'
+
 const SDKD_APIKEY = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhcGlfY2xpZW50X2lkIjoiNGVkNTNiYTAtNTRjYy00M2QwLTk4MDgtZGZiMTY2ZDhhMmI4IiwiY3JlYXRlZF9hdCI6MTUwNzIzNjQ4OH0.z4_h_4iTCYyv0OMCqe6RE0XEvM_DIagTR3lfRbQt74w' // local
 
 jest.mock('WebView', () => 'WebView')
@@ -55,6 +57,9 @@ it('configures sdkd correctly', () => {
 })
 
 it('tests sdkd-wallet with recovery phrase', async () => {
+  // clean keychain
+  Keychain.setInternetCredentials(null, null)
+
   // mock create user response
   fetch.mockResponseOnce(JSON.stringify({ jwt: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoiYTZlZTY0NzMtNmExMi00OGY4LWEyYWUtMjRjMTg2NjM5OGI5IiwiY3JlYXRlZF9hdCI6MTUwOTM5OTMyMn0.2N6Y4oyaPGC2mpsjzz9rE5tG47tAmqI-jMrVd8o9WC4' }))
 
@@ -86,6 +91,58 @@ it('tests sdkd-wallet with recovery phrase', async () => {
   w = new SDKDWallet({debug: false})
   w.activateFromRecoveryPhrase('glitch0@gmail.com', phrase)
   walletAddressAfter = w.getAddressString()
+  expect(walletAddressAfter).toBe(walletAddress)
+
+  // test getting balance
+  // mock get balance response
+  fetch.mockResponseOnce(JSON.stringify({ result: 0 }))
+
+  let balance = await w.getBalance()
+  expect(balance).toBe('0')
+
+  // test sending tx
+  // mock getTransactionData response
+  fetch.mockResponseOnce(JSON.stringify([
+    { result: 0 }, // balance
+    { result: '0xdeadbeef' }, // gasprice
+    { result: '0xdeadbeef' } // nonce
+  ]))
+
+  // mock sendRawTx response
+  fetch.mockResponseOnce(JSON.stringify({ data: 'meow' }))
+
+  // send to random eth address
+  let txHash = await w.sendTx('0x9899AF5Aa1EfA90921d686212c87e70F4fbea035', 100)
+  expect(txHash).toBe('meow')
+})
+
+
+it('tests sdkd-wallet with email recovery', async () => {
+  // clean keychain
+  Keychain.setInternetCredentials(null, null)
+
+  // mock create user response
+  fetch.mockResponseOnce(JSON.stringify({ jwt: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoiYTZlZTY0NzMtNmExMi00OGY4LWEyYWUtMjRjMTg2NjM5OGI5IiwiY3JlYXRlZF9hdCI6MTUwOTM5OTMyMn0.2N6Y4oyaPGC2mpsjzz9rE5tG47tAmqI-jMrVd8o9WC4' }))
+
+  // mock store user key parts response
+  fetch.mockResponseOnce(JSON.stringify({ success: true }))
+
+  SDKDConfig.init(SDKD_APIKEY)
+  let w = new SDKDWallet({debug: false})
+  expect(w).toBeTruthy()
+  let phrase = await w.activate({email: 'glitch0@gmail.com'})
+  expect(phrase).toBeUndefined()
+  let walletAddress = w.getAddressString()
+
+  // try activating again to make sure that everything works when the user opens the app a second time.  the private key should be in the keychain so the address string should match.
+
+  // auth user response
+  fetch.mockResponseOnce(JSON.stringify({ jwt: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoiYTZlZTY0NzMtNmExMi00OGY4LWEyYWUtMjRjMTg2NjM5OGI5IiwiY3JlYXRlZF9hdCI6MTUwOTM5OTMyMn0.2N6Y4oyaPGC2mpsjzz9rE5tG47tAmqI-jMrVd8o9WC4' }))
+
+  w = new SDKDWallet({debug: false})
+  let undefinedPhrase = await w.activate({email: 'glitch0@gmail.com'})
+  expect(undefinedPhrase).toBeUndefined()
+  let walletAddressAfter = w.getAddressString()
   expect(walletAddressAfter).toBe(walletAddress)
 
   // test getting balance

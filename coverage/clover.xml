@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<coverage generated="1509406867298" clover="3.2.0">
+  <project timestamp="1509406867299" name="All files">
+    <metrics statements="30" coveredstatements="22" conditionals="20" coveredconditionals="11" methods="6" coveredmethods="3" elements="56" coveredelements="36" complexity="0" loc="30" ncloc="30" packages="1" files="3" classes="3">
+      <file name="App.js" path="/Users/chris/Documents/WorkStuff/AttentionLottery/react-native-distributed-dev-kit/App.js">
+        <metrics statements="15" coveredstatements="9" conditionals="2" coveredconditionals="1" methods="6" coveredmethods="3"/>
+        <line num="19" count="1" type="stmt"/>
+        <line num="21" count="1" type="stmt"/>
+        <line num="30" count="1" type="stmt"/>
+        <line num="31" count="1" type="stmt"/>
+        <line num="37" count="1" type="stmt"/>
+        <line num="38" count="1" type="stmt"/>
+        <line num="39" count="1" type="stmt"/>
+        <line num="42" count="0" type="stmt"/>
+        <line num="44" count="0" type="stmt"/>
+        <line num="45" count="0" type="stmt"/>
+        <line num="48" count="0" type="stmt"/>
+        <line num="49" count="0" type="stmt"/>
+        <line num="56" count="0" type="stmt"/>
+        <line num="59" count="1" type="stmt"/>
+        <line num="73" count="1" type="stmt"/>
+      </file>
+      <file name="setupJest.js" path="/Users/chris/Documents/WorkStuff/AttentionLottery/react-native-distributed-dev-kit/setupJest.js">
+        <metrics statements="1" coveredstatements="1" conditionals="0" coveredconditionals="0" methods="0" coveredmethods="0"/>
+        <line num="3" count="1" type="stmt"/>
+      </file>
+      <file name="shim.js" path="/Users/chris/Documents/WorkStuff/AttentionLottery/react-native-distributed-dev-kit/shim.js">
+        <metrics statements="14" coveredstatements="12" conditionals="18" coveredconditionals="10" methods="0" coveredmethods="0"/>
+        <line num="1" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="2" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="3" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="4" count="0" type="stmt"/>
+        <line num="6" count="1" type="stmt"/>
+        <line num="7" count="1" type="stmt"/>
+        <line num="8" count="82" type="cond" truecount="2" falsecount="0"/>
+        <line num="9" count="3" type="stmt"/>
+        <line num="14" count="1" type="stmt"/>
+        <line num="15" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="18" count="1" type="cond" truecount="2" falsecount="0"/>
+        <line num="19" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="20" count="1" type="cond" truecount="1" falsecount="1"/>
+        <line num="21" count="0" type="cond" truecount="0" falsecount="2"/>
+      </file>
+    </metrics>
+  </project>
+</coverage>
