@@ -1,0 +1,6 @@
+site_name: SDKD
+pages:
+  - Home: index.md
+  - Modules: 
+    - 'Overview': 'modules/index.md'
+    - 'Wallet': 'modules/wallet.md'

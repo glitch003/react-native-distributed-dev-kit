@@ -1,0 +1,119 @@
+{
+    "docs": [
+        {
+            "location": "/", 
+            "text": "SDKD Docs\n\n\nSDKD is a powerful system of reusable modules that makes app development easier.  Instead of writing new code for every app, you can seamlessly reuse code across apps and developers.\n\n\nCheck out our \nmodule docs\n to learn more.", 
+            "title": "Home"
+        }, 
+        {
+            "location": "/#sdkd-docs", 
+            "text": "SDKD is a powerful system of reusable modules that makes app development easier.  Instead of writing new code for every app, you can seamlessly reuse code across apps and developers.  Check out our  module docs  to learn more.", 
+            "title": "SDKD Docs"
+        }, 
+        {
+            "location": "/modules/", 
+            "text": "SDKD Module Documentation\n\n\nSDKD provides many modules, which can be used to enhance your application in a number of different ways. Modules can have back-end and front-end components and can perform a wide range of functionality. You can enable modules in the developer portal, and many can be deployed with a single click.\n\n\nList of modules\n\n\n\n\nWallet", 
+            "title": "Overview"
+        }, 
+        {
+            "location": "/modules/#sdkd-module-documentation", 
+            "text": "SDKD provides many modules, which can be used to enhance your application in a number of different ways. Modules can have back-end and front-end components and can perform a wide range of functionality. You can enable modules in the developer portal, and many can be deployed with a single click.", 
+            "title": "SDKD Module Documentation"
+        }, 
+        {
+            "location": "/modules/#list-of-modules", 
+            "text": "Wallet", 
+            "title": "List of modules"
+        }, 
+        {
+            "location": "/modules/wallet/", 
+            "text": "Wallet\n\n\nThe wallet module lets you provision a wallet for a user, and all you need to provide is an email address.  The private key is stored securely on the device in the user's encrypted keychain.  An account entry is created on our servers for the user.  The public address associated with the user is uploaded to our servers.  \n\n\nGetting started\n\n\nTo install SDKD wallet, follow the instructions below.\n\n\nNote that in addition to installing the sdkd-wallet npm module, you'll also need to install a few dependencies and rn-nodeify to shim some nodejs packages. This is because react-native doesn't currently have a \nresolve.alias a la webpack\n.\n\n\nnpm i --save react-native-crypto\n# install peer deps\nnpm i --save react-native-randombytes react-native-keychain\nreact-native link\n# install latest rn-nodeify\nnpm i --save-dev mvayngrib/rn-nodeify\n# install node core shims and recursively hack package.json files\n# in ./node_modules to add/update the \nbrowser\n/\nreact-native\n field with relevant mappings\n./node_modules/.bin/rn-nodeify --hack --install\n\n\n\n\nrn-nodeify\n will create a \nshim.js\n in the project root directory\n\n\n// index.ios.js or index.android.js\n// make sure you use `import` and not require!  \nimport './shim.js'\n// ...the rest of your code\n\n\n\n\nUsage\n\n\nTo use the wallet, you must import the sdkd config module, and set your sdkd.co API key.  You can get an sdkd.co API key by contacting us using the contact form at sdkd.co\n\n\nThe code below will set your API key, and create a new wallet for a user with email test@example.com.\n\n\nIf no recovery type is chosen, the user will receive an email with a recovery key they can use if they lose access to their phone.\n\n\nimport SDKDConfig from '@sdkd/sdkd'\nimport SDKDWallet from '@sdkd/sdkd-wallet'\n\n\n\n\nconst SDKD_APIKEY = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhcGlfY2xpZW50X2lkIjoiNGVkNTNiYTAtNTRjYy00M2QwLTk4MDgtZGZiMTY2ZDhhMmI4IiwiY3JlYXRlZF9hdCI6MTUwNzIzNjQ4OH0.z4_h_4iTCYyv0OMCqe6RE0XEvM_DIagTR3lfRbQt74w'\n\nSDKDConfig.init(SDKD_APIKEY)\nlet w = new SDKDWallet()\nw.activate({email: 'test@example.com'})\n.then(() =\n {\n  // The wallet is now ready to go.  You can store it in your state if you want to render stuff like the user's wallet address or a QR code for their address.\n  this.setState({wallet: w})\n});\n\n\n\n\n\nBasic Functions\n\n\nThis section documents the public functions you can use with the wallet module.\n\n\nConstructor\n\n\nExample Usage\n\n\nlet w = new SDKDWallet()\n\n\n\n\nThe constructor takes 1 optional argument, a config object with the following properties:\n\n\n{\n  debug: (Optional) \nboolean\n - defines whether or not debug statements will be printed to the console\n}\n\n\n\n\nActivate\n\n\nCreates or loads the user's wallet account, using their email address as the primary key.\n\nThe activate function takes 1 required argument, a config object with the following properties:\n\n\n{\n  email: (Required) \nstring\n - the users email address,\n  recoveryType: (Optional) \nstring\n - one of either 'email' (the default) for 2 factor email recovery or 'phrase' for 24 word passphrase\n}\n\n\n\n\n\n\n\n\nIf the activate function has never been called on this device for a given email, a new wallet will be created for that user.  The private key will be saved in their local keychain.\n\n\n\n\n\n\nIf the activate function has already been called on this device for a given email, the private key will be loaded from the user's keychain. \n\n\n\n\n\n\nRecovery type options\n\n\n\n\nemail: The user's private key will be split into two parts.  The first part will be emailed to the user.  The second part is uploaded to our servers.  If the user loses access to their phone, they can recover the private key by combing these two parts.\n\n\nphrase: The user's private key will be returned by the activate function promise in the form of a 24 word recovery phrase that follows the widely used bip39 standard.  For security, first account activation is the only time you can ever retrieve the recovery phrase, since this gives you direct access to the user's private key.\n\n\n\n\nExample Usage with {recoveryType: 'email'}\n\n\nNote that there is no need to actually pass {recoveryType: 'email'} because it's the default.\n\n\nw.activate({email: 'test@example.com'})\n.then(() =\n {\n  // wallet is now provisioned and ready to go.\n  // you may want to store it in your state so you can do things like render a QR code for the user's ethereum address\n  this.setState({wallet: w})\n});\n\n\n\n\nExample Usage with {recoveryType: 'phrase'}\n\n\nw.activate({email: 'test@example.com', recoveryType: 'phrase'})\n.then((phrase) =\n {\n  // wallet is now provisioned and ready to go\n  // show the user the contents of the 'phrase' variable so that they can write it down for recovery.  This is the only opportunity you will ever have to get the phrase.\n  if (phrase !== undefined) { // needed because phrase will only be defined on first account activation\n    Alert.alert('Write this down', 'Keep this somewhere safe: ' + phrase)\n  }\n});\n\n\n\n\nGet ethereum address string\n\n\nReturns the ethereum address as a hex string for the wallet.\n\n\nExample Usage\n\n\nlet address = w.getAddressString()\n// do something with address\nconsole.log('Your ethereum address is ' + address)\n\n\n\n\nGet balance\n\n\nReturns the a promise that resolves with the user's ETH balance in wei.\n\n\nExample Usage\n\n\nlet balance = await w.getBalance()\n// do something with balance\nconsole.log('Your ethereum balance in wei is ' + balance)\n// you may want to store the user's balance in the state if you wish to display it\nthis.setState({balance})\n\n\n\n\nRender address QR code\n\n\nRenders a 200x200px QR code encoded with the user's ethereum address string.  If you display this on the screen, another user can scan this user's QR code to send them ether or tokens.\n\n\nExample Usage to show user's balance and a QR code for their address\n\n\nrender () {\n  return (\n    \nView style={styles.container}\n\n      \nText\n\n        Your balance is {this.state.balance} Wei\n      \n/Text\n\n      {this.state.wallet ? this.state.wallet.renderAddressQRCode() : null}\n    \n/View\n\n  )\n}\n\n\n\n\nSend transaction\n\n\nSends an ethereum transaction.  This function accepts two arguments: \n\n\n\n\nto: the ethereum address to send to\n\n\nvalue: the amount of wei to send\n\n\n\n\nThis function returns a promise that resolves to the transaction hash of the transaction.  \n\n\nExample Usage\n\n\n// this will send 100 wei to the example address specified in the first argument.\nlet txHash = await w.sendTx('0x164f64dac95870b7b1261e233221778b1186102a', 100);\nconsole.log('Your transaction is now live at https://ropsten.etherscan.io/tx/' + txHash)\n\n\n\n\nActivate from recovery phrase\n\n\nIf you originally chose recoveryType: 'phrase' when activating the user's wallet, and they lose access to their phone, you can use this function to recovery a user's private key.\n\n\nThis function takes 2 arguments:\n\n\n\n\nemail: the user's email\n\n\nphrase: the recovery phrase\n\n\n\n\nExample Usage\n\n\nlet phrase = 'lyrics sport manage dinosaur enemy dish mercy science apple shiver planet lemon lend grain copy equal believe perfect gesture slogan room cycle order abuse'\nw.activateFromRecoveryPhrase('text@example.com', phrase)\n.then(() =\n {\n  // wallet is now provisioned and ready to go.\n  // you may want to store it in your state so you can do things like render a QR code for the user's ethereum address\n  this.setState({wallet: w})\n})\n\n\n\n\nAdvanced functions\n\n\nMost users will not need to use these functions, but they are included for your convenience anyway, just in case.  For example, one of these functions give you access to the user's raw public key which you could use for your own cryptographic purposes.\n\n\nGet ethereum address\n\n\nReturns the raw ethereum address for the wallet.  This is an array of bytes.\n\n\nExample Usage\n\n\nlet address = w.getAddress()\n// do something with address\n\n\n\n\nGet checksum address string\n\n\nReturns the checksum address for the wallet as a hex string.\n\n\nExample Usage\n\n\nlet chsum = w.getChecksumAddressString()\n// do something with chksum\n\n\n\n\nGet public key\n\n\nReturns the raw public key for the wallet.  This is an array of bytes.\n\n\nExample Usage\n\n\nlet pubKey = w.getPublicKey()\n// do something with pubKey\n\n\n\n\nGet public key string\n\n\nReturns the public key as a hex string for the wallet.\n\n\nExample Usage\n\n\nlet pubKey = w.getPublicKeyString()\n// do something with pubKey", 
+            "title": "Wallet"
+        }, 
+        {
+            "location": "/modules/wallet/#wallet", 
+            "text": "The wallet module lets you provision a wallet for a user, and all you need to provide is an email address.  The private key is stored securely on the device in the user's encrypted keychain.  An account entry is created on our servers for the user.  The public address associated with the user is uploaded to our servers.", 
+            "title": "Wallet"
+        }, 
+        {
+            "location": "/modules/wallet/#getting-started", 
+            "text": "To install SDKD wallet, follow the instructions below.  Note that in addition to installing the sdkd-wallet npm module, you'll also need to install a few dependencies and rn-nodeify to shim some nodejs packages. This is because react-native doesn't currently have a  resolve.alias a la webpack .  npm i --save react-native-crypto\n# install peer deps\nnpm i --save react-native-randombytes react-native-keychain\nreact-native link\n# install latest rn-nodeify\nnpm i --save-dev mvayngrib/rn-nodeify\n# install node core shims and recursively hack package.json files\n# in ./node_modules to add/update the  browser / react-native  field with relevant mappings\n./node_modules/.bin/rn-nodeify --hack --install  rn-nodeify  will create a  shim.js  in the project root directory  // index.ios.js or index.android.js\n// make sure you use `import` and not require!  \nimport './shim.js'\n// ...the rest of your code", 
+            "title": "Getting started"
+        }, 
+        {
+            "location": "/modules/wallet/#usage", 
+            "text": "To use the wallet, you must import the sdkd config module, and set your sdkd.co API key.  You can get an sdkd.co API key by contacting us using the contact form at sdkd.co  The code below will set your API key, and create a new wallet for a user with email test@example.com.  If no recovery type is chosen, the user will receive an email with a recovery key they can use if they lose access to their phone.  import SDKDConfig from '@sdkd/sdkd'\nimport SDKDWallet from '@sdkd/sdkd-wallet'  const SDKD_APIKEY = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhcGlfY2xpZW50X2lkIjoiNGVkNTNiYTAtNTRjYy00M2QwLTk4MDgtZGZiMTY2ZDhhMmI4IiwiY3JlYXRlZF9hdCI6MTUwNzIzNjQ4OH0.z4_h_4iTCYyv0OMCqe6RE0XEvM_DIagTR3lfRbQt74w'\n\nSDKDConfig.init(SDKD_APIKEY)\nlet w = new SDKDWallet()\nw.activate({email: 'test@example.com'})\n.then(() =  {\n  // The wallet is now ready to go.  You can store it in your state if you want to render stuff like the user's wallet address or a QR code for their address.\n  this.setState({wallet: w})\n});", 
+            "title": "Usage"
+        }, 
+        {
+            "location": "/modules/wallet/#basic-functions", 
+            "text": "This section documents the public functions you can use with the wallet module.", 
+            "title": "Basic Functions"
+        }, 
+        {
+            "location": "/modules/wallet/#constructor", 
+            "text": "Example Usage  let w = new SDKDWallet()  The constructor takes 1 optional argument, a config object with the following properties:  {\n  debug: (Optional)  boolean  - defines whether or not debug statements will be printed to the console\n}", 
+            "title": "Constructor"
+        }, 
+        {
+            "location": "/modules/wallet/#activate", 
+            "text": "Creates or loads the user's wallet account, using their email address as the primary key. \nThe activate function takes 1 required argument, a config object with the following properties:  {\n  email: (Required)  string  - the users email address,\n  recoveryType: (Optional)  string  - one of either 'email' (the default) for 2 factor email recovery or 'phrase' for 24 word passphrase\n}    If the activate function has never been called on this device for a given email, a new wallet will be created for that user.  The private key will be saved in their local keychain.    If the activate function has already been called on this device for a given email, the private key will be loaded from the user's keychain.", 
+            "title": "Activate"
+        }, 
+        {
+            "location": "/modules/wallet/#recovery-type-options", 
+            "text": "email: The user's private key will be split into two parts.  The first part will be emailed to the user.  The second part is uploaded to our servers.  If the user loses access to their phone, they can recover the private key by combing these two parts.  phrase: The user's private key will be returned by the activate function promise in the form of a 24 word recovery phrase that follows the widely used bip39 standard.  For security, first account activation is the only time you can ever retrieve the recovery phrase, since this gives you direct access to the user's private key.   Example Usage with {recoveryType: 'email'}  Note that there is no need to actually pass {recoveryType: 'email'} because it's the default.  w.activate({email: 'test@example.com'})\n.then(() =  {\n  // wallet is now provisioned and ready to go.\n  // you may want to store it in your state so you can do things like render a QR code for the user's ethereum address\n  this.setState({wallet: w})\n});  Example Usage with {recoveryType: 'phrase'}  w.activate({email: 'test@example.com', recoveryType: 'phrase'})\n.then((phrase) =  {\n  // wallet is now provisioned and ready to go\n  // show the user the contents of the 'phrase' variable so that they can write it down for recovery.  This is the only opportunity you will ever have to get the phrase.\n  if (phrase !== undefined) { // needed because phrase will only be defined on first account activation\n    Alert.alert('Write this down', 'Keep this somewhere safe: ' + phrase)\n  }\n});", 
+            "title": "Recovery type options"
+        }, 
+        {
+            "location": "/modules/wallet/#get-ethereum-address-string", 
+            "text": "Returns the ethereum address as a hex string for the wallet.  Example Usage  let address = w.getAddressString()\n// do something with address\nconsole.log('Your ethereum address is ' + address)", 
+            "title": "Get ethereum address string"
+        }, 
+        {
+            "location": "/modules/wallet/#get-balance", 
+            "text": "Returns the a promise that resolves with the user's ETH balance in wei.  Example Usage  let balance = await w.getBalance()\n// do something with balance\nconsole.log('Your ethereum balance in wei is ' + balance)\n// you may want to store the user's balance in the state if you wish to display it\nthis.setState({balance})", 
+            "title": "Get balance"
+        }, 
+        {
+            "location": "/modules/wallet/#render-address-qr-code", 
+            "text": "Renders a 200x200px QR code encoded with the user's ethereum address string.  If you display this on the screen, another user can scan this user's QR code to send them ether or tokens.  Example Usage to show user's balance and a QR code for their address  render () {\n  return (\n     View style={styles.container} \n       Text \n        Your balance is {this.state.balance} Wei\n       /Text \n      {this.state.wallet ? this.state.wallet.renderAddressQRCode() : null}\n     /View \n  )\n}", 
+            "title": "Render address QR code"
+        }, 
+        {
+            "location": "/modules/wallet/#send-transaction", 
+            "text": "Sends an ethereum transaction.  This function accepts two arguments:    to: the ethereum address to send to  value: the amount of wei to send   This function returns a promise that resolves to the transaction hash of the transaction.    Example Usage  // this will send 100 wei to the example address specified in the first argument.\nlet txHash = await w.sendTx('0x164f64dac95870b7b1261e233221778b1186102a', 100);\nconsole.log('Your transaction is now live at https://ropsten.etherscan.io/tx/' + txHash)", 
+            "title": "Send transaction"
+        }, 
+        {
+            "location": "/modules/wallet/#activate-from-recovery-phrase", 
+            "text": "If you originally chose recoveryType: 'phrase' when activating the user's wallet, and they lose access to their phone, you can use this function to recovery a user's private key.  This function takes 2 arguments:   email: the user's email  phrase: the recovery phrase   Example Usage  let phrase = 'lyrics sport manage dinosaur enemy dish mercy science apple shiver planet lemon lend grain copy equal believe perfect gesture slogan room cycle order abuse'\nw.activateFromRecoveryPhrase('text@example.com', phrase)\n.then(() =  {\n  // wallet is now provisioned and ready to go.\n  // you may want to store it in your state so you can do things like render a QR code for the user's ethereum address\n  this.setState({wallet: w})\n})", 
+            "title": "Activate from recovery phrase"
+        }, 
+        {
+            "location": "/modules/wallet/#advanced-functions", 
+            "text": "Most users will not need to use these functions, but they are included for your convenience anyway, just in case.  For example, one of these functions give you access to the user's raw public key which you could use for your own cryptographic purposes.", 
+            "title": "Advanced functions"
+        }, 
+        {
+            "location": "/modules/wallet/#get-ethereum-address", 
+            "text": "Returns the raw ethereum address for the wallet.  This is an array of bytes.  Example Usage  let address = w.getAddress()\n// do something with address", 
+            "title": "Get ethereum address"
+        }, 
+        {
+            "location": "/modules/wallet/#get-checksum-address-string", 
+            "text": "Returns the checksum address for the wallet as a hex string.  Example Usage  let chsum = w.getChecksumAddressString()\n// do something with chksum", 
+            "title": "Get checksum address string"
+        }, 
+        {
+            "location": "/modules/wallet/#get-public-key", 
+            "text": "Returns the raw public key for the wallet.  This is an array of bytes.  Example Usage  let pubKey = w.getPublicKey()\n// do something with pubKey", 
+            "title": "Get public key"
+        }, 
+        {
+            "location": "/modules/wallet/#get-public-key-string", 
+            "text": "Returns the public key as a hex string for the wallet.  Example Usage  let pubKey = w.getPublicKeyString()\n// do something with pubKey", 
+            "title": "Get public key string"
+        }
+    ]
+}

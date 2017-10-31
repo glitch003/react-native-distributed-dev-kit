@@ -238,7 +238,7 @@ export default class SDKDWallet {
     privKey = privKey.toString('hex')
     Keychain
     .setInternetCredentials(this._keychainKey(), privKey)
-    .then(function () {
+    .then(() => {
       this._debugLog('Credentials saved successfully!')
     })
   }
