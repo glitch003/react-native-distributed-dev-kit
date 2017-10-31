@@ -15,7 +15,6 @@ import {
 import SDKDConfig from '@sdkd/sdkd'
 import SDKDWallet from '@sdkd/sdkd-wallet'
 
-// const SDKD_APIKEY = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhcGlfY2xpZW50X2lkIjoiYWQwZDAyNTYtYjc1MS00OWFlLWJlMmMtYzc2NGM2ZmQ2N2FjIiwiY3JlYXRlZF9hdCI6MTUwNzMxNzg4MH0.jYMLQch_DuvYAzSkMU3O-oFUdJjjQrYdqeZJPE4oUgg' // heroku
 const SDKD_APIKEY = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhcGlfY2xpZW50X2lkIjoiNGVkNTNiYTAtNTRjYy00M2QwLTk4MDgtZGZiMTY2ZDhhMmI4IiwiY3JlYXRlZF9hdCI6MTUwNzIzNjQ4OH0.z4_h_4iTCYyv0OMCqe6RE0XEvM_DIagTR3lfRbQt74w' // local
 
 const instructions = Platform.select({
