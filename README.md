@@ -1,4 +1,4 @@
-# SDKD Example App w/modules
+# SDKD Example App w/modules - Ropsten testnet only (for now)
 
 This repository contains 2 things:
 

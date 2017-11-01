@@ -15,7 +15,7 @@ import {
 import SDKDConfig from '@sdkd/sdkd'
 import SDKDWallet from '@sdkd/sdkd-wallet'
 
-const SDKD_APIKEY = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhcGlfY2xpZW50X2lkIjoiNGVkNTNiYTAtNTRjYy00M2QwLTk4MDgtZGZiMTY2ZDhhMmI4IiwiY3JlYXRlZF9hdCI6MTUwNzIzNjQ4OH0.z4_h_4iTCYyv0OMCqe6RE0XEvM_DIagTR3lfRbQt74w' // local
+const SDKD_APIKEY = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhcGlfY2xpZW50X2lkIjoiNWRmMjY0NjUtZWQ2YS00MWRhLTlmYjktNWQzNTk1M2Y4OGQwIiwiY3JlYXRlZF9hdCI6MTUwOTU3OTE5Mn0.iVYGewZFHImht83a2rbn3rN6-QadhDNSNBV2HbnOc3M' // local
 
 const instructions = Platform.select({
   ios: 'Press Cmd+R to reload,\n' +
