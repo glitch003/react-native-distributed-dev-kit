@@ -35,7 +35,7 @@ export default class App extends React.Component {
   componentWillMount () {
     SDKDConfig.init(SDKD_APIKEY)
     let w = new SDKDWallet({debug: false})
-    w.activate({email: 'glitch0@gmail.com', recoveryType: 'phrase'})
+    w.activate({email: 'test@example.com', recoveryType: 'phrase'})
     .then((phrase) => {
       console.log('recovery phrase is ' + phrase)
       this.setState({wallet: w})
