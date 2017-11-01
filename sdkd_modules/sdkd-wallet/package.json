@@ -1,9 +1,10 @@
 {
   "name": "@sdkd/sdkd-wallet",
   "main": "index.js",
-  "version": "0.0.14",
+  "version": "0.0.15",
+  "license": "MS-RSL",
   "dependencies": {
-    "@sdkd/sdkd": "0.0.2",
+    "@sdkd/sdkd": "0.0.3",
     "bignumber.js": "^4.1.0",
     "bip39": "^2.4.0",
     "ethereumjs-tx": "^1.3.3",
