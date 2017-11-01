@@ -1,4 +1,4 @@
-# Wallet
+# Wallet - React Native
 
 The wallet module lets you provision a wallet for a user, and all you need to provide is an email address.  The private key is stored securely on the device in the user's encrypted keychain.  An account entry is created on our servers for the user.  The public address associated with the user is uploaded to our servers.  
 
