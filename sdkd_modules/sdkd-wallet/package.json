@@ -4,7 +4,7 @@
   "version": "0.0.16",
   "license": "MS-RSL",
   "dependencies": {
-    "@sdkd/sdkd": "0.0.3",
+    "@sdkd/sdkd": "0.0.4",
     "bignumber.js": "^4.1.0",
     "bip39": "^2.4.0",
     "ethereumjs-tx": "^1.3.3",
