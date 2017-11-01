@@ -3,7 +3,7 @@
 This repository contains 2 things:
 
 * A demo app with tests that tests all modules
-* The module sources themselves, for dev purposes
+* The module sources themselves, for dev and reference purposes
 
 You should be able to clone this repo and get started with the ethereum wallet module immediately.  You will need to obtain an API key from us, which can be done by contacting us at chris@sdkd.co.
 
