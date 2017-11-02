@@ -1,9 +1,11 @@
+import { SDKD_HOST } from 'react-native-dotenv'
+
 export default class SDKDConfig {
   static init (apiKey) {
+    console.log('SDKD host: ' + SDKD_HOST)
     global.sdkdConfig = {
       apiKey: apiKey,
-      // sdkdHost: 'http://localhost:3000',
-      sdkdHost: 'https://sdk-d.herokuapp.com',
+      sdkdHost: SDKD_HOST,
       moduleConfig: {}
     }
   }
