@@ -16,11 +16,18 @@ import ethFuncs from './etherwallet/ethFuncs'
 import globalFuncs from './etherwallet/globalFuncs'
 import etherUnits from './etherwallet/etherUnits'
 
+// utils
 import AwsSigner from './utils/AwsSigner'
 import SSSS from './utils/SSSS'
 
 // 24 word recovery phrase
 import bip39 from 'bip39'
+
+// to craft the email
+import mimemessage from 'mimemessage'
+
+// to create qr code data url
+import { default as qrgen } from 'yaqrcode'
 
 // for backwards compatibility with MEW
 ethUtil.crypto = crypto
@@ -166,7 +173,7 @@ export default class SDKDWallet {
             rawTx.rawTx = JSON.stringify(rawTx)
             rawTx.signedTx = '0x' + eTx.serialize().toString('hex')
             rawTx.isError = false
-            
+
             return rawTx
           }
         })
@@ -266,8 +273,17 @@ export default class SDKDWallet {
 
   _emailKeyPart (part) {
     this._debugLog('[SDKDWallet]: _emailKeyPart')
+    // pull out api keu id so we can encode it in the qr code
+    let apiKeyPayload = JSON.parse(Buffer.from(global.sdkdConfig.unsignedApiKey, 'base64').toString())
+    // create qr code image to embed in email
+    let qrData = JSON.stringify({
+      email: this.email,
+      api_client_id: apiKeyPayload.api_client_id,
+      part: part
+    })
+    let url = qrgen(qrData)
     let body = 'Your recovery key is ' + part
-    this._sendEmail(this.email, 'Your recovery key for SDKD', body)
+    this._sendEmail(this.email, 'Your recovery key for SDKD', body, url)
     this._debugLog('emailed key part 0')
   }
 
@@ -297,7 +313,11 @@ export default class SDKDWallet {
     .catch(err => { throw new Error(err) })
   }
 
-  async _sendEmail (to, subject, body) {
+  async _sendEmail (to, subject, body, attachment) {
+    // craft mime message
+    let mimeBody = this._craftEmail(to, subject, body, attachment)
+    let base64Body = Buffer.from(mimeBody).toString('base64')
+
     // get aws key and token and stuff
     let awsKey = await fetch(global.sdkdConfig.sdkdHost + '/modules/wallet_aws_token', {
       method: 'GET',
@@ -320,11 +340,10 @@ export default class SDKDWallet {
     }
     let signer = new AwsSigner(config)
     let postBodyObj = {
-      'Action': 'SendEmail',
+      'Action': 'SendRawEmail',
       'Source': 'recovery@sdkd.co',
-      'Destination.ToAddresses.member.1': to,
-      'Message.Subject.Data': subject,
-      'Message.Body.Text.Data': body
+      'Destinations.member.1': to,
+      'RawMessage.Data': base64Body
     }
     let postBody = Object.keys(postBodyObj)
     .map(k => k + '=' + encodeURIComponent(postBodyObj[k]))
@@ -336,6 +355,7 @@ export default class SDKDWallet {
       url: 'https://email.us-east-1.amazonaws.com',
       body: postBody
     }
+    this._debugLog('request: ')
     this._debugLog(request)
     var signed = signer.sign(request)
     this._debugLog('signed request: ')
@@ -347,6 +367,39 @@ export default class SDKDWallet {
     })
     .then(response => this._debugLog(response))
     .catch(err => { throw new Error(err) })
+  }
+
+  _craftEmail (to, subject, body, attachment) {
+    var msg, plainEntity, pngEntity
+
+    // Build the top-level multipart MIME message.
+    msg = mimemessage.factory({
+      contentType: 'multipart/mixed',
+      body: []
+    })
+    msg.header('From', 'recovery@sdkd.co')
+    msg.header('Subject', subject)
+    msg.header('To', to)
+
+    // Build the plain text MIME entity.
+    plainEntity = mimemessage.factory({
+      body: body
+    })
+
+    // Build the PNG MIME entity.
+    pngEntity = mimemessage.factory({
+      contentType: 'image/gif',
+      contentTransferEncoding: 'base64',
+      body: attachment.replace('data:image/gif;base64,', '') // remove encoding designator
+    })
+    pngEntity.header('Content-Disposition', 'attachment;filename="recoverypart.gif"')
+
+    msg.body.push(plainEntity)
+
+    // Add the PNG entity to the top-level MIME message.
+    msg.body.push(pngEntity)
+
+    return msg.toString()
   }
 
   _registerUser () {

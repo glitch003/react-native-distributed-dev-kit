@@ -6,7 +6,12 @@ export default class SDKDConfig {
     global.sdkdConfig = {
       apiKey: apiKey,
       sdkdHost: SDKD_HOST,
-      moduleConfig: {}
+      moduleConfig: {},
+      unsignedApiKey: this._extractDataFromApiKey(apiKey)
     }
+  }
+
+  static _extractDataFromApiKey (apiKey) {
+    return apiKey.split('.')[1]
   }
 }
