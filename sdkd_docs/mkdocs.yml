@@ -1,4 +1,7 @@
 site_name: SDKD
+repo_url: https://github.com/glitch003/react-native-distributed-dev-kit
+repo_name: 'GitHub'
+edit_uri: ''
 pages:
   - Home: index.md
   - Modules: 

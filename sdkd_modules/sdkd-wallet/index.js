@@ -237,7 +237,7 @@ export default class SDKDWallet {
     let { privKey } = privates.get(this)
     privKey = privKey.toString('hex')
     Keychain
-    .setInternetCredentials(this._keychainKey(), privKey)
+    .setInternetCredentials(this._keychainKey(), this.email, privKey)
     .then(() => {
       this._debugLog('Credentials saved successfully!')
     })
