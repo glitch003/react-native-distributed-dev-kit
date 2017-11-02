@@ -55,6 +55,3 @@ buck-out/
 # docs
 sdkd_docs/site
 
-# envs
-.env
-.env.production
