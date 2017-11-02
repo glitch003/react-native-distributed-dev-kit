@@ -24,20 +24,21 @@ jest.mock('NativeModules', () => {
 })
 
 jest.mock('react-native-keychain', () => {
-  let e = null
-  let p = null
+  let domains = {}
   return {
-    setInternetCredentials: jest.fn((email, password) => {
-      e = email
-      p = password
+    setInternetCredentials: jest.fn((domain, email, password) => {
+      domains[domain] = {
+        email: email,
+        password: password
+      }
       return Promise.resolve()
     }),
-    getInternetCredentials: jest.fn((email) => {
+    getInternetCredentials: jest.fn((domain) => {
       return new Promise((resolve, reject) => {
-        if (e === null) {
+        if (domains[domain] === null || domains[domain] === undefined || domains[domain].email == null) {
           resolve(false)
         }
-        resolve({username: e, password: p})
+        resolve({username: domains[domain].email, password: domains[domain].password})
       })
     })
   }
@@ -58,7 +59,7 @@ it('configures sdkd correctly', () => {
 
 it('tests sdkd-wallet with recovery phrase', async () => {
   // clean keychain
-  Keychain.setInternetCredentials(null, null)
+  Keychain.setInternetCredentials('sdkd_private_key_for_test@example.com', null, null)
 
   // mock create user response
   fetch.mockResponseOnce(JSON.stringify({ jwt: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoiYTZlZTY0NzMtNmExMi00OGY4LWEyYWUtMjRjMTg2NjM5OGI5IiwiY3JlYXRlZF9hdCI6MTUwOTM5OTMyMn0.2N6Y4oyaPGC2mpsjzz9rE5tG47tAmqI-jMrVd8o9WC4' }))
@@ -69,7 +70,7 @@ it('tests sdkd-wallet with recovery phrase', async () => {
   SDKDConfig.init(SDKD_APIKEY)
   let w = new SDKDWallet({debug: false})
   expect(w).toBeTruthy()
-  let phrase = await w.activate({email: 'glitch0@gmail.com', recoveryType: 'phrase'})
+  let phrase = await w.activate({email: 'test@example.com', recoveryType: 'phrase'})
   expect(phrase).toBeTruthy()
   expect(phrase.length).toBeGreaterThan(10) // length should be 24 words and will always be more than 10 chars
   expect(phrase.split(' ').length).toBe(24) // 24 words separated by spaces
@@ -82,14 +83,14 @@ it('tests sdkd-wallet with recovery phrase', async () => {
   fetch.mockResponseOnce(JSON.stringify({ jwt: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoiYTZlZTY0NzMtNmExMi00OGY4LWEyYWUtMjRjMTg2NjM5OGI5IiwiY3JlYXRlZF9hdCI6MTUwOTM5OTMyMn0.2N6Y4oyaPGC2mpsjzz9rE5tG47tAmqI-jMrVd8o9WC4' }))
 
   w = new SDKDWallet({debug: false})
-  let undefinedPhrase = await w.activate({email: 'glitch0@gmail.com', recoveryType: 'phrase'})
+  let undefinedPhrase = await w.activate({email: 'test@example.com', recoveryType: 'phrase'})
   expect(undefinedPhrase).toBeUndefined()
   let walletAddressAfter = w.getAddressString()
   expect(walletAddressAfter).toBe(walletAddress)
 
   // test recovery from original phrase
   w = new SDKDWallet({debug: false})
-  w.activateFromRecoveryPhrase('glitch0@gmail.com', phrase)
+  w.activateFromRecoveryPhrase('test@example.com', phrase)
   walletAddressAfter = w.getAddressString()
   expect(walletAddressAfter).toBe(walletAddress)
 
@@ -119,7 +120,7 @@ it('tests sdkd-wallet with recovery phrase', async () => {
 
 it('tests sdkd-wallet with email recovery', async () => {
   // clean keychain
-  Keychain.setInternetCredentials(null, null)
+  Keychain.setInternetCredentials('sdkd_private_key_for_test@example.com', null, null)
 
   // mock create user response
   fetch.mockResponseOnce(JSON.stringify({ jwt: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoiYTZlZTY0NzMtNmExMi00OGY4LWEyYWUtMjRjMTg2NjM5OGI5IiwiY3JlYXRlZF9hdCI6MTUwOTM5OTMyMn0.2N6Y4oyaPGC2mpsjzz9rE5tG47tAmqI-jMrVd8o9WC4' }))
@@ -128,9 +129,9 @@ it('tests sdkd-wallet with email recovery', async () => {
   fetch.mockResponseOnce(JSON.stringify({ success: true }))
 
   SDKDConfig.init(SDKD_APIKEY)
-  let w = new SDKDWallet({debug: false})
+  let w = new SDKDWallet({debug: true})
   expect(w).toBeTruthy()
-  let phrase = await w.activate({email: 'glitch0@gmail.com'})
+  let phrase = await w.activate({email: 'test@example.com'})
   expect(phrase).toBeUndefined()
   let walletAddress = w.getAddressString()
 
@@ -139,8 +140,8 @@ it('tests sdkd-wallet with email recovery', async () => {
   // auth user response
   fetch.mockResponseOnce(JSON.stringify({ jwt: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoiYTZlZTY0NzMtNmExMi00OGY4LWEyYWUtMjRjMTg2NjM5OGI5IiwiY3JlYXRlZF9hdCI6MTUwOTM5OTMyMn0.2N6Y4oyaPGC2mpsjzz9rE5tG47tAmqI-jMrVd8o9WC4' }))
 
-  w = new SDKDWallet({debug: false})
-  let undefinedPhrase = await w.activate({email: 'glitch0@gmail.com'})
+  w = new SDKDWallet({debug: true})
+  let undefinedPhrase = await w.activate({email: 'test@example.com'})
   expect(undefinedPhrase).toBeUndefined()
   let walletAddressAfter = w.getAddressString()
   expect(walletAddressAfter).toBe(walletAddress)
