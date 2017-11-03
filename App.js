@@ -35,36 +35,50 @@ export default class App extends React.Component {
   componentWillMount () {
     SDKDConfig.init(SDKD_APIKEY)
     let w = new SDKDWallet({debug: true})
-    w.activate({email: 'cvcassano@gmail.com'})
-    .then(() => {
-      this.setState({wallet: w})
-      // check balance
-      console.log('[SDKD]: checking balance')
-      return w.getBalance()
-    })
-    .then(balance => {
-      console.log('[SDKD]: setting balance')
-      this.setState({balance})
-      // if(balance > 0){
-      //   // try sending tx
-      //   return w.sendTx('0x164f64dac95870b7b1261e233221778b1186102a', 100);
-      // }
-    })
-    // .then(txData => console.log(txData))
-    .catch(err => { throw new Error(err) })
+    this.setState({wallet: w})
+    // w.activate({email: 'cvcassano@gmail.com'})
+    // .then(() => {
+    //   this.setState({wallet: w})
+    //   // check balance
+    //   console.log('[SDKD]: checking balance')
+    //   return w.getBalance()
+    // })
+    // .then(balance => {
+    //   console.log('[SDKD]: setting balance')
+    //   this.setState({balance})
+    //   // if(balance > 0){
+    //   //   // try sending tx
+    //   //   return w.sendTx('0x164f64dac95870b7b1261e233221778b1186102a', 100);
+    //   // }
+    // })
+    // // .then(txData => console.log(txData))
+    // .catch(err => { throw new Error(err) })
   }
   render () {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.welcome}>
-          Welcome to React Native!
-        </Text>
-        <Text>
-          Your balance is {this.state.balance} Wei
-        </Text>
-        {this.state.wallet ? this.state.wallet.renderAddressQRCode() : null}
-      </View>
-    )
+    if (!this.state.wallet) {
+      return (
+        <View style={styles.container}>
+          <Text style={styles.welcome}>
+            Loading...
+          </Text>
+        </View>
+      )
+    }
+    return this.state.wallet.renderRecoveryQRScanner(() => {
+      console.log('wallet has been recovered')
+      console.log('address is ' + this.state.wallet.getAddressString())
+    })
+    // return (
+    //   <View style={styles.container}>
+    //     <Text style={styles.welcome}>
+    //       Welcome to React Native!
+    //     </Text>
+    //     <Text>
+    //       Your balance is {this.state.balance} Wei
+    //     </Text>
+    //     {this.state.wallet ? this.state.wallet.renderAddressQRCode() : null}
+    //   </View>
+    // )
   }
 }
 

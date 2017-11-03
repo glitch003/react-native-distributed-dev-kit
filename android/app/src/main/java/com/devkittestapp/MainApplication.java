@@ -3,6 +3,7 @@ package com.devkittestapp;
 import android.app.Application;
 
 import com.facebook.react.ReactApplication;
+import com.lwansbrough.RCTCamera.RCTCameraPackage;
 import com.facebook.react.ReactNativeHost;
 import com.facebook.react.ReactPackage;
 import com.facebook.react.shell.MainReactPackage;
@@ -26,7 +27,8 @@ public class MainApplication extends Application implements ReactApplication {
       return Arrays.<ReactPackage>asList(
               new RandomBytesPackage(),
               new KeychainPackage(),
-              new MainReactPackage()
+              new MainReactPackage(),
+            new RCTCameraPackage()
       );
     }
 
