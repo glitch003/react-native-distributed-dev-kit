@@ -63,7 +63,7 @@ export default class SDKDWallet {
       Keychain
       .getInternetCredentials(this._keychainKey())
       .then((credentials) => {
-        if (credentials) {
+        if (false && credentials) {
           this._debugLog('[SDKDWallet]: Credentials successfully loaded for email ' + credentials.username)
           this._storePrivateVar('privKey', Buffer.from(credentials.password, 'hex'))
           this._authenticateUser()
@@ -279,7 +279,8 @@ export default class SDKDWallet {
     let qrData = JSON.stringify({
       email: this.email,
       api_client_id: apiKeyPayload.api_client_id,
-      part: part
+      part: part,
+      signedEmail: this._signWithPrivateKey(this.email)
     })
     let url = qrgen(qrData)
     let body = 'Your recovery key is ' + part
@@ -329,7 +330,7 @@ export default class SDKDWallet {
       }
     })
     .then(response => response.json())
-    this._debugLog('got aws keys: ' + JSON.stringify(awsKey))
+    // this._debugLog('got aws keys: ' + JSON.stringify(awsKey))
 
     let config = {
       region: 'us-east-1',
@@ -355,11 +356,11 @@ export default class SDKDWallet {
       url: 'https://email.us-east-1.amazonaws.com',
       body: postBody
     }
-    this._debugLog('request: ')
-    this._debugLog(request)
+    // this._debugLog('request: ')
+    // this._debugLog(request)
     var signed = signer.sign(request)
-    this._debugLog('signed request: ')
-    this._debugLog(signed)
+    // this._debugLog('signed request: ')
+    // this._debugLog(signed)
     fetch('https://email.us-east-1.amazonaws.com', {
       method: 'POST',
       headers: signed,
@@ -406,7 +407,7 @@ export default class SDKDWallet {
     this._debugLog('[SDKDWallet]: _registerUser')
     // register the user
     return new Promise((resolve, reject) => {
-        fetch(global.sdkdConfig.sdkdHost + '/users', {
+      fetch(global.sdkdConfig.sdkdHost + '/users', {
         method: 'POST',
         headers: {
           'Accept': 'application/json',
@@ -439,29 +440,10 @@ export default class SDKDWallet {
 
   _signEmailForAuth () {
     this._debugLog('[SDKDWallet]: _signEmailForAuth')
-    let { privKey } = privates.get(this)
-
     let nonce = crypto.randomBytes(4).toString('hex')
     let payload = nonce + '_' + this.email
-    let msgHash = ethUtil.hashPersonalMessage(Buffer.from(payload))
-    let signedEmail = ethUtil.ecsign(msgHash, privKey)
 
-    // sanity check - make sure it's valid
-    if (!ethUtil.isValidSignature(signedEmail.v, signedEmail.r, signedEmail.s)) {
-      throw new Error('Could not validate signature just generated to auth user')
-    }
-
-    // sanity check - get the pub key out
-    let pubKey = ethUtil.ecrecover(msgHash, signedEmail.v, signedEmail.r, signedEmail.s)
-    let address = '0x' + ethUtil.publicToAddress(pubKey).toString('hex')
-    if (address !== this.getAddressString()) {
-      throw new Error('Address derived from public key retrieved from user auth signature does not match wallet address')
-    }
-
-    // convert signedEmail stuff to hex
-    signedEmail.s = signedEmail.s.toString('hex')
-    signedEmail.r = signedEmail.r.toString('hex')
-    signedEmail.v = signedEmail.v.toString(16)
+    let signedEmail = this._signWithPrivateKey(payload)
 
     return {
       signature: signedEmail,
@@ -469,6 +451,32 @@ export default class SDKDWallet {
       email: this.email,
       nonce: nonce
     }
+  }
+
+  _signWithPrivateKey (payload) {
+    let { privKey } = privates.get(this)
+
+    let msgHash = ethUtil.hashPersonalMessage(Buffer.from(payload))
+    let signedData = ethUtil.ecsign(msgHash, privKey)
+
+    // sanity check - make sure it's valid
+    if (!ethUtil.isValidSignature(signedData.v, signedData.r, signedData.s)) {
+      throw new Error('Could not validate signature just generated to auth user')
+    }
+
+    // sanity check - get the pub key out
+    let pubKey = ethUtil.ecrecover(msgHash, signedData.v, signedData.r, signedData.s)
+    let address = '0x' + ethUtil.publicToAddress(pubKey).toString('hex')
+    if (address !== this.getAddressString()) {
+      throw new Error('Address derived from public key retrieved from user auth signature does not match wallet address')
+    }
+
+    // convert signedData stuff to hex
+    signedData.s = signedData.s.toString('hex')
+    signedData.r = signedData.r.toString('hex')
+    signedData.v = signedData.v.toString(16)
+
+    return signedData
   }
 
   _keychainKey () {

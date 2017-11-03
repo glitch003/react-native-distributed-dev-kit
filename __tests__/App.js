@@ -129,7 +129,7 @@ it('tests sdkd-wallet with email recovery', async () => {
   fetch.mockResponseOnce(JSON.stringify({ success: true }))
 
   SDKDConfig.init(SDKD_APIKEY)
-  let w = new SDKDWallet({debug: true})
+  let w = new SDKDWallet({debug: false})
   expect(w).toBeTruthy()
   let phrase = await w.activate({email: 'test@example.com'})
   expect(phrase).toBeUndefined()
@@ -140,7 +140,7 @@ it('tests sdkd-wallet with email recovery', async () => {
   // auth user response
   fetch.mockResponseOnce(JSON.stringify({ jwt: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoiYTZlZTY0NzMtNmExMi00OGY4LWEyYWUtMjRjMTg2NjM5OGI5IiwiY3JlYXRlZF9hdCI6MTUwOTM5OTMyMn0.2N6Y4oyaPGC2mpsjzz9rE5tG47tAmqI-jMrVd8o9WC4' }))
 
-  w = new SDKDWallet({debug: true})
+  w = new SDKDWallet({debug: false})
   let undefinedPhrase = await w.activate({email: 'test@example.com'})
   expect(undefinedPhrase).toBeUndefined()
   let walletAddressAfter = w.getAddressString()

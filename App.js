@@ -35,7 +35,7 @@ export default class App extends React.Component {
   componentWillMount () {
     SDKDConfig.init(SDKD_APIKEY)
     let w = new SDKDWallet({debug: true})
-    w.activate({email: 'glitch0@gmail.com'})
+    w.activate({email: 'cvcassano@gmail.com'})
     .then(() => {
       this.setState({wallet: w})
       // check balance
