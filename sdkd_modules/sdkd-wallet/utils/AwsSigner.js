@@ -6,7 +6,7 @@ var URLParser = require('url-parse')
 const defaultConfig = {
   region: 'us-east-1',
   service: 'email',
-  defaultContentType: 'application/x-www-form-urlencoded',
+  defaultContentType: 'application/x-www-form-urlencoded; charset=utf-8',
   defaultAcceptType: 'application/json'
 }
 
@@ -61,6 +61,8 @@ export default class AwsSigner {
     this.prepare(workingSet)
     this.buildCanonicalRequest(workingSet)    // Step1: build the canonical request
     this.buildStringToSign(workingSet)        // Step2: build the string to sign
+    // console.log('working set before calculating sig: ')
+    // console.log(workingSet)
     this.calculateSignature(workingSet)       // Step3: calculate the signature hash
     this.buildSignatureHeader(workingSet)     // Step4: build the authorization header
     return {
@@ -99,9 +101,9 @@ export default class AwsSigner {
         )
     ws.sortedHeaderKeys = Object.keys(ws.request.headers).sort()
         // Remove Content-Type parameters as some browser might change them on send
-    if (ws.request.headers['Content-Type']) {
-      ws.request.headers['Content-Type'] = ws.request.headers['Content-Type'].split(';')[0]
-    }
+    // if (ws.request.headers['Content-Type']) {
+    //   ws.request.headers['Content-Type'] = ws.request.headers['Content-Type'].split(';')[0]
+    // }
         // Merge params to query params
     if (typeof (ws.request.params) === 'object') {
       this.extend(ws.uri.queryParams, ws.request.params)
@@ -163,6 +165,8 @@ export default class AwsSigner {
             'aws4_request',
             {hexOutput: false, textInput: false}
         )
+    // console.log('signKey: ' + signKey.toString('hex'))
+    // console.log('string to sign: ' + ws.stringToSign)
     ws.signature = hmac(signKey, ws.stringToSign, {textInput: false})
   }
 
@@ -209,13 +213,14 @@ export default class AwsSigner {
          * `queryParams`: Query parameters as JavaScript object.
          */
     return function (uri) {
-      console.log('parsing uri ' + uri)
+      // console.log('parsing uri ' + uri)
       let parser = URLParser(uri)
+      // console.log('query is ' + parser.query)
       return {
         protocol: parser.protocol,
         host: parser.host.replace(/^(.*):((80)|(443))$/, '$1'),
         path: ((parser.pathname.charAt(0) !== '/') ? '/' : '') + parser.pathname,
-        queryParams: parser.query
+        queryParams: parser.query === '' ? {} : parser.query
       }
     }
   }

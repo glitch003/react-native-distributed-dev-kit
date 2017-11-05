@@ -44,6 +44,10 @@ jest.mock('react-native-keychain', () => {
   }
 })
 
+jest.mock('react-native-camera', () => {
+  return {}
+})
+
 it('renders correctly', () => {
   const tree = renderer.create(
     <App />

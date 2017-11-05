@@ -187,7 +187,7 @@ console.log('Your transaction is now live at https://ropsten.etherscan.io/tx/' +
 
 ## Activate from recovery phrase
 
-If you originally chose recoveryType: 'phrase' when activating the user's wallet, and they lose access to their phone, you can use this function to recovery a user's private key.
+If you originally chose recoveryType: 'phrase' when activating the user's wallet, and they lose access to their phone, you can use this function to recover a user's private key.
 
 This function takes 2 arguments:
 
@@ -205,6 +205,31 @@ w.activateFromRecoveryPhrase('text@example.com', phrase)
   this.setState({wallet: w})
 })
 ```
+
+## Render recovery QR scanner
+
+If you originally chose recoveryType: 'email' (or used the default) when activating the user's wallet, and they lose access to their phone, you can use this function to recover a user's private key.
+
+Return this function in your render() and it will render a camera for the user.  The user should point the camera at their recovery QR code.  The app will detect the QR code, and recover the user's wallet from it.  
+
+This function takes 1 argument which is a callback function that is called once the wallet has been successfully restored.
+
+**Example Usage**
+
+```js
+  render () {
+    if (this.state.recovering) { // only show the camera QR scanner view if we're recovering
+      return this.state.wallet.renderRecoveryQRScanner(() => {
+        console.log('wallet has been recovered')
+        console.log('address is ' + this.state.wallet.getAddressString())
+        this.setState({recovering: false})
+        this.state.wallet.getBalance()
+        .then(balance => this.setState({balance}))
+      })
+    }
+  }
+```
+
 
 # Advanced functions
 

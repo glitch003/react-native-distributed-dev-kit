@@ -54,6 +54,7 @@ export default class SDKDWallet {
     }
     this._debugLog('[SDKDWallet]: new Wallet(' + JSON.stringify(config) + ')')
     this.ajaxReq = new AjaxReq({debug: this.debug})
+    this.ready = false
   }
 
   // config object:
@@ -69,11 +70,12 @@ export default class SDKDWallet {
       Keychain
       .getInternetCredentials(this._keychainKey())
       .then((credentials) => {
-        if (false && credentials) {
+        if (credentials) {
           this._debugLog('[SDKDWallet]: Credentials successfully loaded for email ' + credentials.username)
           this._storePrivateVar('privKey', Buffer.from(credentials.password, 'hex'))
           this._authenticateUser()
           .then(jwt => {
+            this.ready = true
             resolve()
           })
         } else {
@@ -84,6 +86,7 @@ export default class SDKDWallet {
             this._saveWallet()
             if (config.recoveryType === undefined || config.recoveryType === 'email') {
               this._sendWalletRecoveryParts()
+              this.ready = true
               resolve()
             } else {
               // upload key part since it includes the address and we need that for future auths
@@ -92,6 +95,7 @@ export default class SDKDWallet {
               let { privKey } = privates.get(this)
               privKey = privKey.toString('hex')
               let mnemonic = bip39.entropyToMnemonic(privKey)
+              this.ready = true
               resolve(mnemonic)
             }
           })
@@ -208,7 +212,13 @@ export default class SDKDWallet {
     let privKey = Buffer.from(hexPrivKey, 'hex')
     this._storePrivateVar('privKey', privKey)
     this._saveWallet()
-    return this._authenticateUser()
+    return new Promise((resolve, reject) => {
+      this._authenticateUser()
+      .then(() => {
+        this.ready = true
+        resolve()
+      })
+    })
   }
 
   renderRecoveryQRScanner (cb) {
@@ -277,6 +287,7 @@ export default class SDKDWallet {
               this._saveWallet()
               this._authenticateUser()
               .then(() => {
+                this.ready = true
                 cb()
               })
             })
