@@ -15,3 +15,11 @@ You can also join our telegram group for live help: https://t.me/sdk_d
 
 To run tests, just use "npm test"
 
+## Installation Instructions
+
+After you've cloned this repo, cd into the repo folder and run these commands
+
+```sh
+npm install
+./node_modules/.bin/rn-nodeify --hack --install
+```
