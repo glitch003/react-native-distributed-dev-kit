@@ -238,60 +238,7 @@ export default class SDKDWallet {
             justifyContent: 'flex-end',
             alignItems: 'center'
           }}
-          onBarCodeRead={(data) => {
-            if (this.barcodeRead) {
-              return
-            }
-            // this._debugLog('Barcode read: ')
-            // this._debugLog(data)
-            this.barcodeRead = true
-            // example data:
-            // { type: 'QR_CODE',
-            //   data: '{"email":"cvcassano@gmail.com","api_client_id":"5df26465-ed6a-41da-9fb9-5d35953f88d0","part":"8010a7ce37395081199411d8c60cb8e313ce69cb7d4b15e321afdf6f20c926766c15a","signedEmail":{"r":"e8308a4f8092bf75d52c753ded84592bcbbe627ab123be66324a1efa1ad5080e","s":"5cbc10bb8a62f9444cae5193db6ed0e406fe31b561f18691d5d564761b080c34","v":"1b"}}'
-            // }
-            data = JSON.parse(data.data)
-
-            // set email address for instance
-            this.email = data.email
-
-            let localPart = data.part
-            // send everything but localPart to server
-            let sendToServer = {
-              email: data.email,
-              api_client_id: data.api_client_id,
-              signedEmail: data.signedEmail
-            }
-
-            // get part from server
-            fetch(global.sdkdConfig.sdkdHost + '/user_key_parts/recover', {
-              method: 'POST',
-              headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'X-SDKD-API-Client-Key': global.sdkdConfig.apiKey
-              },
-              body: JSON.stringify(sendToServer)
-            })
-            .then(response => response.json())
-            .then(response => {
-              this._debugLog('[SDKDWallet]: got recovery part')
-              let remotePart = response.part
-              // combine remotePart and localPart
-              let s = new SSSS()
-              let shares = [localPart, remotePart]
-              let combined = s.combine(0, shares)
-              let privKey = Buffer.from(combined, 'hex')
-              this._storePrivateVar('privKey', privKey)
-              // hurray, we recovered their wallet
-              this._debugLog('[SDKDWallet]: recovered, eth address is ' + this.getAddressString())
-              this._saveWallet()
-              this._authenticateUser()
-              .then(() => {
-                this.ready = true
-                cb()
-              })
-            })
-          }}
+          onBarCodeRead={this._recoveryQRScanned.bind(this, cb)}
           barCodeTypes={['qr']}
           aspect={Camera.constants.Aspect.fill}
         />
@@ -300,6 +247,62 @@ export default class SDKDWallet {
   }
 
   // private
+
+  _recoveryQRScanned (cb, data) {
+    this._debugLog('[SDKDWallet]: _recoveryQRScanned data:')
+    if (this.barcodeRead) {
+      return
+    }
+    this._debugLog('Barcode read: ')
+    this._debugLog(data)
+    this.barcodeRead = true
+    // example data:
+    // { type: 'QR_CODE',
+    //   data: '{"email":"cvcassano@gmail.com","api_client_id":"5df26465-ed6a-41da-9fb9-5d35953f88d0","part":"8010a7ce37395081199411d8c60cb8e313ce69cb7d4b15e321afdf6f20c926766c15a","signedEmail":{"r":"e8308a4f8092bf75d52c753ded84592bcbbe627ab123be66324a1efa1ad5080e","s":"5cbc10bb8a62f9444cae5193db6ed0e406fe31b561f18691d5d564761b080c34","v":"1b"}}'
+    // }
+    data = JSON.parse(data.data)
+
+    // set email address for instance
+    this.email = data.email
+
+    let localPart = data.part
+    // send everything but localPart to server
+    let sendToServer = {
+      email: data.email,
+      api_client_id: data.api_client_id,
+      signedEmail: data.signedEmail
+    }
+
+    // get part from server
+    fetch(global.sdkdConfig.sdkdHost + '/user_key_parts/recover', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-SDKD-API-Client-Key': global.sdkdConfig.apiKey
+      },
+      body: JSON.stringify(sendToServer)
+    })
+    .then(response => response.json())
+    .then(response => {
+      this._debugLog('[SDKDWallet]: got recovery part')
+      let remotePart = response.part
+      // combine remotePart and localPart
+      let s = new SSSS()
+      let shares = [localPart, remotePart]
+      let combined = s.combine(0, shares)
+      let privKey = Buffer.from(combined, 'hex')
+      this._storePrivateVar('privKey', privKey)
+      // hurray, we recovered their wallet
+      this._debugLog('[SDKDWallet]: recovered, eth address is ' + this.getAddressString())
+      this._saveWallet()
+      this._authenticateUser()
+      .then(() => {
+        this.ready = true
+        cb()
+      })
+    })
+  }
 
   _authenticateUser () {
     this._debugLog('[SDKDWallet]: _authenticateUser')

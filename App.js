@@ -15,7 +15,7 @@ import {
 import SDKDConfig from '@sdkd/sdkd'
 import SDKDWallet from '@sdkd/sdkd-wallet'
 
-const SDKD_APIKEY = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhcGlfY2xpZW50X2lkIjoiNWRmMjY0NjUtZWQ2YS00MWRhLTlmYjktNWQzNTk1M2Y4OGQwIiwiY3JlYXRlZF9hdCI6MTUwOTU3OTE5Mn0.iVYGewZFHImht83a2rbn3rN6-QadhDNSNBV2HbnOc3M' // local
+const SDKD_APIKEY = ''
 
 const instructions = Platform.select({
   ios: 'Press Cmd+R to reload,\n' +
@@ -28,7 +28,7 @@ export default class App extends React.Component {
   constructor () {
     super()
     SDKDConfig.init(SDKD_APIKEY)
-    let w = new SDKDWallet({debug: true})
+    let w = new SDKDWallet({debug: false})
     this.state = {
       wallet: w,
       balance: 'loading...'

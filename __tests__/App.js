@@ -121,8 +121,7 @@ it('tests sdkd-wallet with recovery phrase', async () => {
   expect(txHash).toBe('meow')
 })
 
-
-it('tests sdkd-wallet with email recovery', async () => {
+it('tests sdkd-wallet with default options', async () => {
   // clean keychain
   Keychain.setInternetCredentials('sdkd_private_key_for_test@example.com', null, null)
 
@@ -171,4 +170,34 @@ it('tests sdkd-wallet with email recovery', async () => {
   // send to random eth address
   let txHash = await w.sendTx('0x9899AF5Aa1EfA90921d686212c87e70F4fbea035', 100)
   expect(txHash).toBe('meow')
+})
+
+it('tests sdkd-wallet email recovery via QR code', async (done) => {
+  // clean keychain
+  Keychain.setInternetCredentials('sdkd_private_key_for_test@example.com', null, null)
+
+  let walletAddress = '0x695e0b79c0c81aa6a1375b98b38413b83be103d3'
+
+  SDKDConfig.init(SDKD_APIKEY)
+  let w = new SDKDWallet({debug: false})
+  expect(w).toBeTruthy()
+
+  // test qr code recovery
+  let qrJson = {
+    data: JSON.stringify({'email': 'cvcassano@gmail.com', 'api_client_id': '907a7bd9-5bd1-423a-94b0-b68e9d673aca', 'part': '8013dd54f1c0313d5342256fb2e392f8b4af174e1fb31d83f13373899d29d6f81b766', 'signedEmail': {'r': '0dfd6a7aa8155e9accac1f04478415dff21f8168ab7e473e40d3e8390411b758', 's': '6f0ad93f7379b9fccb2f3be1a71187f2b97c69cf4051dc53b5c59348aef20a5f', 'v': '1b'}})
+  }
+
+  // mock getting part response
+  fetch.mockResponseOnce(JSON.stringify({ part: '802793a48c4e13c5992de3e1aabbaac525959229d796161ccfe699e1b839aa4d44cb8' }))
+
+  // auth user response
+  fetch.mockResponseOnce(JSON.stringify({ jwt: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoiYTZlZTY0NzMtNmExMi00OGY4LWEyYWUtMjRjMTg2NjM5OGI5IiwiY3JlYXRlZF9hdCI6MTUwOTM5OTMyMn0.2N6Y4oyaPGC2mpsjzz9rE5tG47tAmqI-jMrVd8o9WC4' }))
+
+  w._recoveryQRScanned(() => {
+    // success callback
+    expect(w.ready).toBe(true)
+    let walletAddressAfter = w.getAddressString()
+    expect(walletAddressAfter).toBe(walletAddress)
+    done()
+  }, qrJson)
 })
