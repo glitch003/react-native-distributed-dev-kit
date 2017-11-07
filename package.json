@@ -8,6 +8,8 @@
   },
   "dependencies": {
     "@sdkd/sdkd": "file:sdkd_modules/sdkd",
+    "@sdkd/sdkd-aws-ses": "file:sdkd_modules/sdkd-aws-ses",
+    "@sdkd/sdkd-aws-signer": "file:sdkd_modules/sdkd-aws-signer",
     "@sdkd/sdkd-wallet": "file:sdkd_modules/sdkd-wallet",
     "@sdkd/sdkd-ssss": "file:sdkd_modules/sdkd-ssss",
     "assert": "^1.4.1",
@@ -18,7 +20,6 @@
     "domain-browser": "^1.1.7",
     "events": "^1.1.1",
     "https-browserify": "0.0.1",
-    "mimemessage": "^1.0.4",
     "path-browserify": "0.0.0",
     "process": "^0.11.10",
     "querystring-es3": "^0.2.1",

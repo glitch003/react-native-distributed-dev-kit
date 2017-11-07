@@ -10,7 +10,7 @@ const defaultConfig = {
   defaultAcceptType: 'application/json'
 }
 
-export default class AwsSigner {
+export default class SDKDAwsSigner {
     /**
      * Create a new signer object with the given configuration.
      * Configuration must specify the AWS credentials used for the signing operation.
@@ -24,12 +24,8 @@ export default class AwsSigner {
   constructor (config) {
     this.config = this.extend({}, defaultConfig, config)
     this.payloadSerializer = this.JsonPayloadSerializer()
-    // this.config.payloadSerializer ||
-            // this.config.payloadSerializerFactory()
     this.uriParser = this.SimpleUriParser()
-    // this.config.uriParserFactory()
     this.hasher = this.CryptoJSHasher()
-    // this.config.hasherFactory()
     this.assertRequired(this.config.accessKeyId, 'AwsSigner requires AWS AccessKeyID')
     this.assertRequired(this.config.secretAccessKey, 'AwsSigner requires AWS SecretAccessKey')
   }
