@@ -19,11 +19,9 @@ import ethFuncs from './etherwallet/ethFuncs'
 import globalFuncs from './etherwallet/globalFuncs'
 import etherUnits from './etherwallet/etherUnits'
 
-// sdkd deps
-import SDKDSSSS from '@sdkd/sdkd-ssss'
-
 // utils
 import AwsSigner from './utils/AwsSigner'
+import SSSS from './utils/SSSS'
 
 // 24 word recovery phrase
 import bip39 from 'bip39'
@@ -290,9 +288,9 @@ export default class SDKDWallet {
       this._debugLog('[SDKDWallet]: got recovery part')
       let remotePart = response.part
       // combine remotePart and localPart
-      let s = new SDKDSSSS()
+      let s = new SSSS()
       let shares = [localPart, remotePart]
-      let combined = s.combineShares(shares)
+      let combined = s.combine(0, shares)
       let privKey = Buffer.from(combined, 'hex')
       this._storePrivateVar('privKey', privKey)
       // hurray, we recovered their wallet
@@ -355,10 +353,10 @@ export default class SDKDWallet {
     this._debugLog('[SDKDWallet]: _sendWalletRecoveryParts')
     let { privKey } = privates.get(this)
     let privKeyHex = privKey.toString('hex')
-    let s = new SDKDSSSS()
+    let s = new SSSS()
     let shares = s.share(privKeyHex, 2, 2)
     // sanity check - test that they can be recombined
-    let combined = s.combineShares(shares)
+    let combined = s.combine(0, shares)
     if (combined !== privKeyHex) {
       throw new Error('Something is wrong with sending the recovery key.  Recovery key parts could not be reassembled.')
     }

@@ -4,6 +4,7 @@ import App from '../App'
 
 import SDKDConfig from '@sdkd/sdkd'
 import SDKDWallet from '@sdkd/sdkd-wallet'
+import SDKDSSSS from '@sdkd/sdkd-ssss'
 
 // Note: test renderer must be required after react-native.
 import renderer from 'react-test-renderer'
@@ -200,4 +201,30 @@ it('tests sdkd-wallet email recovery via QR code', async (done) => {
     expect(walletAddressAfter).toBe(walletAddress)
     done()
   }, qrJson)
+})
+
+it('tests sdkd-ssss splitting into parts', async () => {
+  let secret = 'd94527908e99bcff99bf7106f16d2490cf60e692'
+  let s = new SDKDSSSS()
+  let shares = s.share(secret, 4, 2)
+  expect(shares.length).toBe(4)
+
+  // pull out 2 shares
+  let shareSubset = [
+    shares[0],
+    shares[3]
+  ]
+  let combined = s.combineShares(shareSubset)
+  expect(combined).toBe(secret)
+})
+
+it('tests sdkd-ssss combining parts', async () => {
+  let secret = 'd94527908e99bcff99bf7106f16d2490cf60e692'
+  let shares = [
+    '802d28e0cc9ed1f0daf76aab23c0740d8a69b1d32018e',
+    '803352ba6be5dd94728bc3d3a9489960ce710741bfc80'
+  ]
+  let s = new SDKDSSSS()
+  let combined = s.combineShares(shares)
+  expect(combined).toBe(secret)
 })

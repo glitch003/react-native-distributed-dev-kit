@@ -22,7 +22,7 @@ var defaults = {
 
 // Protected settings object
 
-export default class SSSS {
+export default class SDKDSSSS {
   constructor (bits) {
     this.config = {}
     this.init(bits)
@@ -261,6 +261,11 @@ export default class SSSS {
       'value': share
     }
   };
+
+  // added by Chris
+  combineShares (shares) {
+    return this.combine(0, shares)
+  }
 
   // Protected method that evaluates the Lagrange interpolation
   // polynomial at x=`at` for individual config.bits-length

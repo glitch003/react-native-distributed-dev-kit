@@ -9,6 +9,7 @@
   "dependencies": {
     "@sdkd/sdkd": "file:sdkd_modules/sdkd",
     "@sdkd/sdkd-wallet": "file:sdkd_modules/sdkd-wallet",
+    "@sdkd/sdkd-ssss": "file:sdkd_modules/sdkd-ssss",
     "assert": "^1.4.1",
     "browserify-zlib": "^0.1.4",
     "console-browserify": "^1.1.0",
