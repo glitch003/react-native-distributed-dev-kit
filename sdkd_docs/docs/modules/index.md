@@ -4,5 +4,7 @@ SDKD provides many modules, which can be used to enhance your application in a n
 
 ## List of modules
 
-- [Wallet](wallet.md)
-- [SSSS (Shamir's secret sharing scheme)](ssss.md)
+- [Ethereum Wallet](wallet.md)
+- [Shamir's secret sharing scheme](ssss.md)
+- [AWS Simple Email Service](aws-ses.md)
+- [AWS Request Signer](aws-signer.md)

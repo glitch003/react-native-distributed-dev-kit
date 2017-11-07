@@ -1,14 +1,46 @@
-# SDKD Aws Signer
+# Amazon Request Signer
 
-This module is used to sign requests destined for AWS using their Signature V4 format.
+This module can sign a request for AWS using their Signature V4 format.  
 
-Check out the github repo for docs and more info on how to use this library: https://github.com/glitch003/react-native-distributed-dev-kit
+# Getting started with SDKD
+
+To install SDKD Aws Signer, follow the instructions below.
 
 You will need to obtain an API key which can be done by signing up [here](http://app.sdkd.co)
 
-Note that this module depends on https://github.com/mvayngrib/react-native-crypto so you should follow those installation instructions as well.
+Note that in addition to installing the sdkd-ssss npm module, you'll also need to install a few dependencies and rn-nodeify to shim some nodejs packages. This is because react-native doesn't currently have a [resolve.alias a la webpack](https://productpains.com/post/react-native/packager-support-resolvealias-ala-webpack).
 
-To sign a request:
+
+```sh
+npm i --save react-native-crypto
+# install peer deps
+npm i --save react-native-randombytes
+react-native link
+# install latest rn-nodeify
+npm i --save-dev mvayngrib/rn-nodeify
+# install node core shims and recursively hack package.json files
+# in ./node_modules to add/update the "browser"/"react-native" field with relevant mappings
+./node_modules/.bin/rn-nodeify --hack --install
+```
+
+`rn-nodeify` will create a `shim.js` in the project root directory
+
+```js
+// index.ios.js or index.android.js
+// make sure you use `import` and not require!  
+import './shim.js'
+// ...the rest of your code
+```
+
+# Installation
+
+```sh
+npm install --save @sdkd/sdkd-aws-signer
+```
+
+# Usage
+
+To use this module, simply instantiate the class with a config object:
 
 ```js
 // define a config that includes your region, and the service you're using.  
@@ -23,6 +55,14 @@ let config = {
   sessionToken: credentials.session_token
 }
 
+// create the signer 
+let signer = new SDKDAwsSigner(config)
+```
+
+## Signing
+To sign a POST request with body:
+
+```js
 // take the post body and convert it into a query string per AWS SES docs
 let postBodyObj = {
   'Action': 'SendRawEmail',
@@ -33,9 +73,6 @@ let postBodyObj = {
 let postBody = Object.keys(postBodyObj)
 .map(k => k + '=' + encodeURIComponent(postBodyObj[k]))
 .join('&')
-
-// create the signer 
-let signer = new SDKDAwsSigner(config)
 
 // Sign the request
 var request = {

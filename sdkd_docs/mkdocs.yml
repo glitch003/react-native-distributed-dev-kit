@@ -6,5 +6,7 @@ pages:
   - Home: index.md
   - Modules: 
     - 'Overview': 'modules/index.md'
-    - 'Wallet': 'modules/wallet.md'
+    - 'Ethereum Wallet': 'modules/wallet.md'
     - 'Shamirs secret sharing scheme': 'modules/ssss.md'
+    - 'AWS Simple Email Service': 'modules/aws-ses.md'
+    - 'AWS Request Signer': 'modules/aws-signer.md'
