@@ -5,6 +5,8 @@ import App from '../App'
 import SDKDConfig from '@sdkd/sdkd'
 import SDKDWallet from '@sdkd/sdkd-wallet'
 import SDKDSSSS from '@sdkd/sdkd-ssss'
+import SDKDAwsSes from '@sdkd/sdkd-aws-ses'
+import SDKDAwsSigner from '@sdkd/sdkd-aws-signer'
 
 // Note: test renderer must be required after react-native.
 import renderer from 'react-test-renderer'
@@ -227,4 +229,85 @@ it('tests sdkd-ssss combining parts', async () => {
   let s = new SDKDSSSS()
   let combined = s.combineShares(shares)
   expect(combined).toBe(secret)
+})
+
+it('tests sdkd-aws-ses email sending', async (done) => {
+  let sender = new SDKDAwsSes({
+    credentials: {
+      accessKeyId: 'test',
+      secretAccessKey: 'test',
+      sessionToken: 'test'
+    },
+    debug: false
+  })
+
+  expect(sender).toBeTruthy()
+
+  let to = 'test@example.com'
+  let fromAddr = 'test@example.com'
+  let subject = 'This is a test'
+
+  // only plaintext body is supported right now
+  let body = 'This is the body of a test'
+
+  // attachments should be an array of base64 data urls
+  let attachments = [
+    'data:image/png;base64,fVkVvYassFAAAABQAAAAIAAAAbWltZXR5cG=='
+  ]
+
+  // ses response
+  fetch.mockResponseOnce(JSON.stringify({'SendRawEmailResponse': {'ResponseMetadata': {'RequestId': '5fd79fb8-c400-11e7-8d61-4108accf2c0d'}, 'SendRawEmailResult': {'MessageId': '0100015f9853e070-21cc3415-a7af-44b2-b517-3f7ff1358d1d-000000'}}}))
+
+  sender.sendMessage(to, fromAddr, subject, body, attachments)
+  .then(response => {
+    done()
+  })
+})
+
+it('tests sdkd-aws-signer signature generation', async () => {
+  let base64Body = 'Q29udGVudC1UeXBlOiBtdWx0aXBhcnQvbWl4ZWQ7Ym91bmRhcnk9V0tjTm5IWFgNCkZyb206IHRlc3RAZXhhbXBsZS5jb20NClN1YmplY3Q6IFRoaXMgaXMgYSB0ZXN0DQpUbzogdGVzdEBleGFtcGxlLmNvbQ0KDQotLVdLY05uSFhYDQpDb250ZW50LVR5cGU6IHRleHQvcGxhaW47Y2hhcnNldD11dGYtOA0KDQpUaGlzIGlzIHRoZSBib2R5IG9mIGEgdGVzdA0KLS1XS2NObkhYWA0KQ29udGVudC1UeXBlOiBpbWFnZS9wbmcNCkNvbnRlbnQtVHJhbnNmZXItRW5jb2Rpbmc6IGJhc2U2NA0KQ29udGVudC1EaXNwb3NpdGlvbjogYXR0YWNobWVudDtmaWxlbmFtZT0iYXR0YWNobWVudC5wbmciDQoNCmZWa1Z2WWFzc0ZBQUFBQlFBQUFBSUFBQUFiV2x0WlhSNWNHPT0NCi0tV0tjTm5IWFgtLQ%3D%3D'
+
+  // config for signing request
+  let signingConfig = {
+    region: 'us-east-1',
+    service: 'email',
+    accessKeyId: 'test',
+    secretAccessKey: 'test',
+    sessionToken: 'test'
+  }
+
+  let signer = new SDKDAwsSigner(signingConfig)
+  expect(signer).toBeTruthy()
+
+  let postBodyObj = {
+    'Action': 'SendRawEmail',
+    'Source': 'test@example.com',
+    'Destinations.member.1': 'test@example.com',
+    'RawMessage.Data': base64Body
+  }
+  let postBody = Object.keys(postBodyObj)
+  .map(k => k + '=' + encodeURIComponent(postBodyObj[k]))
+  .join('&')
+
+  // sign the request
+  var request = {
+    method: 'POST',
+    url: 'https://email.us-east-1.amazonaws.com',
+    body: postBody
+  }
+
+  var signed = signer.sign(request)
+  // example signed obj:
+  // {Accept: 'application/json',
+  //    Authorization: 'AWS4-HMAC-SHA256 Credential=test/20171107/us-east-1/email/aws4_request, SignedHeaders=accept;content-type;host;x-amz-date, Signature=821bd0f94e0215a858255c6576ff4ca6ddf639bd3accd15dc71ad4bcb5e31773',
+  //    'Content-Type': 'application/x-www-form-urlencoded; charset=utf-8',
+  //    'X-Amz-Date': '20171107T215011Z',
+  //    'X-Amz-Security-Token': 'test' }
+  expect(signed).toBeTruthy()
+  expect(signed['Accept']).toBe('application/json')
+  expect(signed['Authorization']).toBeTruthy()
+  expect(signed['Authorization'].length).toBeGreaterThan(128) // usually around 190+ chars
+  expect(signed['Content-Type']).toBe('application/x-www-form-urlencoded; charset=utf-8')
+  expect(signed['X-Amz-Date']).toBeTruthy()
+  expect(signed['X-Amz-Security-Token']).toBe('test')
 })

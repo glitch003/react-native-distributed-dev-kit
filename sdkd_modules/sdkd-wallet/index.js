@@ -21,15 +21,10 @@ import etherUnits from './etherwallet/etherUnits'
 
 // sdkd deps
 import SDKDSSSS from '@sdkd/sdkd-ssss'
-
-// utils
-import AwsSigner from './utils/AwsSigner'
+import SDKDAwsSes from '@sdkd/sdkd-aws-ses'
 
 // 24 word recovery phrase
 import bip39 from 'bip39'
-
-// to craft the email
-import mimemessage from 'mimemessage'
 
 // to create qr code data url
 import { default as qrgen } from 'yaqrcode'
@@ -383,8 +378,31 @@ export default class SDKDWallet {
     })
     let url = qrgen(qrData)
     let body = 'Your recovery key is ' + part
-    this._sendEmail(this.email, 'Your recovery key for SDKD', body, url)
+    this._sendEmail(this.email, 'Your recovery key for SDKD', body, [url])
     this._debugLog('emailed key part 0')
+  }
+
+  async _sendEmail (to, subject, body, attachments) {
+    // get aws key and token and stuff
+    let awsKey = await fetch(global.sdkdConfig.sdkdHost + '/modules/wallet_aws_token', {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-SDKD-API-Client-Key': global.sdkdConfig.apiKey,
+        'X-SDKD-User-Key': global.sdkdConfig.currentUserKey
+      }
+    })
+    .then(response => response.json())
+    // this._debugLog('got aws keys: ' + JSON.stringify(awsKey))
+    let sender = new SDKDAwsSes({
+      credentials: awsKey.credentials,
+      debug: false
+    })
+    sender.sendMessage(to, 'recovery@sdkd.co', subject, body, attachments)
+    .then(response => {
+      this._debugLog('email sent with response: ' + response)
+    })
   }
 
   _uploadKeyPart (part) {
@@ -411,95 +429,6 @@ export default class SDKDWallet {
       this._debugLog('uploaded key part 1')
     })
     .catch(err => { throw new Error(err) })
-  }
-
-  async _sendEmail (to, subject, body, attachment) {
-    // craft mime message
-    let mimeBody = this._craftEmail(to, subject, body, attachment)
-    let base64Body = Buffer.from(mimeBody).toString('base64')
-
-    // get aws key and token and stuff
-    let awsKey = await fetch(global.sdkdConfig.sdkdHost + '/modules/wallet_aws_token', {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'X-SDKD-API-Client-Key': global.sdkdConfig.apiKey,
-        'X-SDKD-User-Key': global.sdkdConfig.currentUserKey
-      }
-    })
-    .then(response => response.json())
-    // this._debugLog('got aws keys: ' + JSON.stringify(awsKey))
-
-    let config = {
-      region: 'us-east-1',
-      service: 'email',
-      accessKeyId: awsKey.credentials.access_key_id,
-      secretAccessKey: awsKey.credentials.secret_access_key,
-      sessionToken: awsKey.credentials.session_token
-    }
-    let signer = new AwsSigner(config)
-    let postBodyObj = {
-      'Action': 'SendRawEmail',
-      'Source': 'recovery@sdkd.co',
-      'Destinations.member.1': to,
-      'RawMessage.Data': base64Body
-    }
-    let postBody = Object.keys(postBodyObj)
-    .map(k => k + '=' + encodeURIComponent(postBodyObj[k]))
-    .join('&')
-
-    // Sign a request
-    var request = {
-      method: 'POST',
-      url: 'https://email.us-east-1.amazonaws.com',
-      body: postBody
-    }
-    // this._debugLog('request: ')
-    // this._debugLog(request)
-    var signed = signer.sign(request)
-    // this._debugLog('signed request: ')
-    // this._debugLog(signed)
-    fetch('https://email.us-east-1.amazonaws.com', {
-      method: 'POST',
-      headers: signed,
-      body: postBody
-    })
-    .then(response => this._debugLog(response))
-    .catch(err => { throw new Error(err) })
-  }
-
-  _craftEmail (to, subject, body, attachment) {
-    var msg, plainEntity, pngEntity
-
-    // Build the top-level multipart MIME message.
-    msg = mimemessage.factory({
-      contentType: 'multipart/mixed',
-      body: []
-    })
-    msg.header('From', 'recovery@sdkd.co')
-    msg.header('Subject', subject)
-    msg.header('To', to)
-
-    // Build the plain text MIME entity.
-    plainEntity = mimemessage.factory({
-      body: body
-    })
-
-    // Build the PNG MIME entity.
-    pngEntity = mimemessage.factory({
-      contentType: 'image/gif',
-      contentTransferEncoding: 'base64',
-      body: attachment.replace('data:image/gif;base64,', '') // remove encoding designator
-    })
-    pngEntity.header('Content-Disposition', 'attachment;filename="recoverypart.gif"')
-
-    msg.body.push(plainEntity)
-
-    // Add the PNG entity to the top-level MIME message.
-    msg.body.push(pngEntity)
-
-    return msg.toString()
   }
 
   _registerUser () {
