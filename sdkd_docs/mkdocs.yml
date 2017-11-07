@@ -7,3 +7,4 @@ pages:
   - Modules: 
     - 'Overview': 'modules/index.md'
     - 'Wallet': 'modules/wallet.md'
+    - 'Shamirs secret sharing scheme': 'modules/ssss.md'

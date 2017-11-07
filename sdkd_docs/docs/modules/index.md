@@ -5,3 +5,4 @@ SDKD provides many modules, which can be used to enhance your application in a n
 ## List of modules
 
 - [Wallet](wallet.md)
+- [SSSS (Shamir's secret sharing scheme)](ssss.md)
