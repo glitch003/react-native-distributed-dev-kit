@@ -2,9 +2,11 @@
 
 This module can split a secret into n-of-m parts.  Learn more here: https://en.wikipedia.org/wiki/Shamir%27s_Secret_Sharing 
 
-# Getting started
+# Getting started with SDKD
 
 To install SDKD SSSS, follow the instructions below.
+
+You will need to obtain an API key which can be done by signing up [here](http://app.sdkd.co)
 
 Note that in addition to installing the sdkd-ssss npm module, you'll also need to install a few dependencies and rn-nodeify to shim some nodejs packages. This is because react-native doesn't currently have a [resolve.alias a la webpack](https://productpains.com/post/react-native/packager-support-resolvealias-ala-webpack).
 
@@ -28,6 +30,12 @@ npm i --save-dev mvayngrib/rn-nodeify
 // make sure you use `import` and not require!  
 import './shim.js'
 // ...the rest of your code
+```
+
+# Installation
+
+```sh
+npm install --save @sdkd/sdkd-ssss
 ```
 
 # Usage
