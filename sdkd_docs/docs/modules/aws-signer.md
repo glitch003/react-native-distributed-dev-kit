@@ -6,7 +6,7 @@ This module can sign a request for AWS using their Signature V4 format.
 
 To install SDKD Aws Signer, follow the instructions below.
 
-You will need to obtain an API key which can be done by signing up [here](http://app.sdkd.co)
+You will need to obtain an API key which can be done by signing up [here](https://app.sdkd.co)
 
 Note that in addition to installing the sdkd-ssss npm module, you'll also need to install a few dependencies and rn-nodeify to shim some nodejs packages. This is because react-native doesn't currently have a [resolve.alias a la webpack](https://productpains.com/post/react-native/packager-support-resolvealias-ala-webpack).
 

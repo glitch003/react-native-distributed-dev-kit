@@ -4,7 +4,7 @@ This module is used to send emails using AWS SES.
 
 Check out the github repo for docs and more info on how to use this library: https://github.com/glitch003/react-native-distributed-dev-kit
 
-You will need to obtain an API key which can be done by signing up [here](http://app.sdkd.co)
+You will need to obtain an API key which can be done by signing up [here](https://app.sdkd.co)
 
 Note that this module depends on https://github.com/mvayngrib/react-native-crypto so you should follow those installation instructions as well.
 

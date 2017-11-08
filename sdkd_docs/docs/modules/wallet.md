@@ -6,7 +6,7 @@ The wallet module lets you provision a wallet for a user, and all you need to pr
 
 To install SDKD wallet, follow the instructions below.
 
-You will need to obtain an API key which can be done by signing up [here](http://app.sdkd.co)
+You will need to obtain an API key which can be done by signing up [here](https://app.sdkd.co)
 
 Note that in addition to installing the sdkd-wallet npm module, you'll also need to install a few dependencies and rn-nodeify to shim some nodejs packages. This is because react-native doesn't currently have a [resolve.alias a la webpack](https://productpains.com/post/react-native/packager-support-resolvealias-ala-webpack).
 

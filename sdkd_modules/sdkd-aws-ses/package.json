@@ -1,10 +1,10 @@
 {
   "name": "@sdkd/sdkd-aws-ses",
   "main": "index.js",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "license": "MIT",
   "dependencies": {
-    "@sdkd/sdkd-aws-signer": "0.0.1",
+    "@sdkd/sdkd-aws-signer": "0.0.2",
     "mimemessage": "^1.0.4",
     "react-native-crypto": "^2.1.1"
   },
