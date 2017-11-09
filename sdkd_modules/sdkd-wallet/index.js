@@ -396,7 +396,11 @@ export default class SDKDWallet {
     .then(response => response.json())
     // this._debugLog('got aws keys: ' + JSON.stringify(awsKey))
     let sender = new SDKDAwsSes({
-      credentials: awsKey.credentials,
+      credentials: {
+        accessKeyId: awsKey.credentials.access_key_id,
+        secretAccessKey: awsKey.credentials.secret_access_key,
+        sessionToken: awsKey.credentials.session_token
+      },
       debug: false
     })
     sender.sendMessage(to, 'recovery@sdkd.co', subject, body, attachments)

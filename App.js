@@ -15,6 +15,9 @@ import {
 import SDKDConfig from '@sdkd/sdkd'
 import SDKDWallet from '@sdkd/sdkd-wallet'
 
+// use this to debug the JS bridge
+// require('MessageQueue').spy(true)
+
 const SDKD_APIKEY = ''
 
 const instructions = Platform.select({
@@ -28,7 +31,7 @@ export default class App extends React.Component {
   constructor () {
     super()
     SDKDConfig.init(SDKD_APIKEY)
-    let w = new SDKDWallet({debug: false})
+    let w = new SDKDWallet({debug: true})
     this.state = {
       wallet: w,
       balance: 'loading...'
