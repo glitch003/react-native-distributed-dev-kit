@@ -14,12 +14,12 @@ import {
 
 import SDKDConfig from '@sdkd/sdkd'
 import SDKDWallet from '@sdkd/sdkd-wallet'
-import SDKDBinder from '@sdkd/sdkd-binder'
+// import SDKDBinder from '@sdkd/sdkd-binder'
 
 // use this to debug the JS bridge
 // require('MessageQueue').spy(true)
 
-const SDKD_APIKEY = ''
+const SDKD_APIKEY = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhcGlfY2xpZW50X2lkIjoiOTA3YTdiZDktNWJkMS00MjNhLTk0YjAtYjY4ZTlkNjczYWNhIiwiY3JlYXRlZF9hdCI6MTUwOTU3ODUzNX0.1rEGOB0D7bsKhPF7npmHN1HH-Htwpk6rxCqkaje4AmM'
 
 const instructions = Platform.select({
   ios: 'Press Cmd+R to reload,\n' +
