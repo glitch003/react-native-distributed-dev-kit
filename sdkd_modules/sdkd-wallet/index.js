@@ -1,5 +1,3 @@
-import { SDKD_WALLET_ETH_NODE_HOST } from 'react-native-dotenv'
-
 import * as Keychain from 'react-native-keychain'
 import QRCode from 'react-native-qrcode'
 import React from 'react'
@@ -44,7 +42,7 @@ export default class SDKDWallet {
       throw new Error('You must run SDKDConfig.init before using any SDKD modules')
     }
     global.sdkdConfig.moduleConfig.wallet = {
-      ethNodeHost: SDKD_WALLET_ETH_NODE_HOST
+      ethNodeHost: 'https://api.myetherapi.com/rop'
     }
     if (config !== undefined) {
       this.debug = config.debug

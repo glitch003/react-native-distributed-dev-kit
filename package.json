@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@sdkd/sdkd": "file:sdkd_modules/sdkd",
+    "@sdkd/sdkd-binder": "file:sdkd_modules/sdkd-binder",
     "@sdkd/sdkd-aws-ses": "file:sdkd_modules/sdkd-aws-ses",
     "@sdkd/sdkd-aws-signer": "file:sdkd_modules/sdkd-aws-signer",
     "@sdkd/sdkd-wallet": "file:sdkd_modules/sdkd-wallet",

@@ -14,6 +14,7 @@ import {
 
 import SDKDConfig from '@sdkd/sdkd'
 import SDKDWallet from '@sdkd/sdkd-wallet'
+import SDKDBinder from '@sdkd/sdkd-binder'
 
 // use this to debug the JS bridge
 // require('MessageQueue').spy(true)
@@ -31,12 +32,14 @@ export default class App extends React.Component {
   constructor () {
     super()
     SDKDConfig.init(SDKD_APIKEY)
-    let w = new SDKDWallet({debug: true})
+    let w = new SDKDWallet({debug: false})
     this.state = {
       wallet: w,
       balance: 'loading...'
       // recovering: true
     }
+    // let s = new SDKDBinder()
+    // s.generateBindings(SDKDWallet)
   }
   componentWillMount () {
     this.state.wallet.activate({email: 'cvcassano@gmail.com'})

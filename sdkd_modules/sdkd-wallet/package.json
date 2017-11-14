@@ -1,10 +1,10 @@
 {
   "name": "@sdkd/sdkd-wallet",
   "main": "index.js",
-  "version": "0.0.26",
+  "version": "0.0.28",
   "license": "MS-RSL",
   "dependencies": {
-    "@sdkd/sdkd": "0.0.8",
+    "@sdkd/sdkd": "0.0.9",
     "@sdkd/sdkd-aws-ses": "0.0.2",
     "@sdkd/sdkd-ssss": "0.0.2",
     "bignumber.js": "^4.1.0",

@@ -1,10 +1,8 @@
-import { SDKD_HOST } from 'react-native-dotenv'
-
 export default class SDKDConfig {
   static init (apiKey) {
     global.sdkdConfig = {
       apiKey: apiKey,
-      sdkdHost: SDKD_HOST,
+      sdkdHost: 'https://sdk-d.herokuapp.com',
       moduleConfig: {},
       unsignedApiKey: this._extractDataFromApiKey(apiKey)
     }
