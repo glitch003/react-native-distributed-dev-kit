@@ -50,7 +50,8 @@ export default class SDKDWallet {
       this.debug = config.debug
     }
     this._debugLog('[SDKDWallet]: new Wallet(' + JSON.stringify(config) + ')')
-    this.ajaxReq = new AjaxReq({debug: this.debug})
+    this.ethNodeAjaxReq = new EthNodeAjaxReq({debug: this.debug})
+    this.sdkdAjaxReq = new SDKDAjaxReq({debug: this.debug})
     this.ready = false
     this._configurePushNotifications()
   }
@@ -127,7 +128,7 @@ export default class SDKDWallet {
   }
   getBalance () {
     this._debugLog('[SDKDWallet]: getBalance, addr string is ' + this.getAddressString())
-    return this.ajaxReq.getBalance(this.getAddressString())
+    return this.ethNodeAjaxReq.getBalance(this.getAddressString())
   }
 
   renderAddressQRCode () {
@@ -159,7 +160,7 @@ export default class SDKDWallet {
     return new Promise((resolve, reject) => {
       try {
         this._isTxDataValid(txData)
-        this.ajaxReq.getTransactionData(txData.from)
+        this.ethNodeAjaxReq.getTransactionData(txData.from)
         .then((data) => {
           this._debugLog('got txn data')
           this._debugLog(data)
@@ -187,7 +188,7 @@ export default class SDKDWallet {
         })
         .then((rawTx) => {
           // tx is assembled, send signed tx
-          this.ajaxReq.sendRawTx(rawTx.signedTx)
+          this.ethNodeAjaxReq.sendRawTx(rawTx.signedTx)
           .then((data) => {
             this._debugLog('sent raw tx')
             this._debugLog(data)
@@ -272,16 +273,7 @@ export default class SDKDWallet {
     }
 
     // get part from server
-    fetch(global.sdkdConfig.sdkdHost + '/user_key_parts/recover', {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'X-SDKD-API-Client-Key': global.sdkdConfig.apiKey
-      },
-      body: JSON.stringify(sendToServer)
-    })
-    .then(response => response.json())
+    this.sdkdAjaxReq.getRecoveryPart(sendToServer)
     .then(response => {
       this._debugLog('[SDKDWallet]: got recovery part')
       let remotePart = response.part
@@ -309,16 +301,7 @@ export default class SDKDWallet {
     body['push_type'] = this.pushType
     this._debugLog(JSON.stringify(body))
     return new Promise((resolve, reject) => {
-      fetch(global.sdkdConfig.sdkdHost + '/sessions', {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'X-SDKD-API-Client-Key': global.sdkdConfig.apiKey
-        },
-        body: JSON.stringify(body)
-      })
-      .then(response => response.json())
+      this.sdkdAjaxReq.authenticateUser(body)
       .then(response => {
         this._debugLog(response)
         if (response.error) {
@@ -388,16 +371,7 @@ export default class SDKDWallet {
 
   async _sendEmail (to, subject, body, attachments) {
     // get aws key and token and stuff
-    let awsKey = await fetch(global.sdkdConfig.sdkdHost + '/modules/wallet_aws_token', {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'X-SDKD-API-Client-Key': global.sdkdConfig.apiKey,
-        'X-SDKD-User-Key': global.sdkdConfig.currentUserKey
-      }
-    })
-    .then(response => response.json())
+    let awsKey = await this.sdkdAjaxReq.getAwsKey()
     // this._debugLog('got aws keys: ' + JSON.stringify(awsKey))
     let sender = new SDKDAwsSes({
       credentials: {
@@ -415,20 +389,11 @@ export default class SDKDWallet {
 
   _uploadKeyPart (part) {
     this._debugLog('[SDKDWallet]: _uploadKeyPart')
-    fetch(global.sdkdConfig.sdkdHost + '/user_key_parts', {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'X-SDKD-API-Client-Key': global.sdkdConfig.apiKey,
-        'X-SDKD-User-Key': global.sdkdConfig.currentUserKey
-      },
-      body: JSON.stringify({
-        address: this.getAddressString(),
-        part: part
-      })
-    })
-    .then(response => response.json())
+    let body = {
+      address: this.getAddressString(),
+      part: part
+    }
+    this.sdkdAjaxReq.uploadKeyPart(body)
     .then(response => {
       this._debugLog(response)
       if (response.error) {
@@ -443,20 +408,12 @@ export default class SDKDWallet {
     this._debugLog('[SDKDWallet]: _registerUser')
     // register the user
     return new Promise((resolve, reject) => {
-      fetch(global.sdkdConfig.sdkdHost + '/users', {
-        method: 'POST',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-          'X-SDKD-API-Client-Key': global.sdkdConfig.apiKey
-        },
-        body: JSON.stringify({
-          email: this.email,
-          push_token: this.pushToken,
-          push_type: this.pushType
-        })
-      })
-      .then(response => response.json())
+      let body = {
+        email: this.email,
+        push_token: this.pushToken,
+        push_type: this.pushType
+      }
+      this.sdkdAjaxReq.registerUser(body)
       .then(response => {
         this._debugLog(response)
         if (response.error) {
@@ -560,19 +517,11 @@ export default class SDKDWallet {
           clearInterval(poller) // user key is set, stop polling
           this._debugLog('sending new push token for user')
           // update on server
-          fetch(global.sdkdConfig.sdkdHost + '/users/self', {
-            method: 'PATCH',
-            headers: {
-              'Accept': 'application/json',
-              'Content-Type': 'application/json',
-              'X-SDKD-API-Client-Key': global.sdkdConfig.apiKey,
-              'X-SDKD-User-Key': global.sdkdConfig.currentUserKey
-            },
-            body: JSON.stringify({
-              push_token: this.pushToken,
-              push_type: this.pushType
-            })
-          })
+          let body = {
+            push_token: this.pushToken,
+            push_type: this.pushType
+          }
+          this.sdkdAjaxReq.updateUser(body)
         }, 5000)
       },
 
@@ -605,7 +554,100 @@ export default class SDKDWallet {
   }
 }
 
-class AjaxReq {
+class SDKDAjaxReq {
+  constructor (config) {
+    if (config !== undefined) {
+      this.debug = config.debug
+    }
+  }
+
+  getRecoveryPart (requestBody) {
+    return fetch(global.sdkdConfig.sdkdHost + '/user_key_parts/recover', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-SDKD-API-Client-Key': global.sdkdConfig.apiKey
+      },
+      body: JSON.stringify(requestBody)
+    })
+    .then(response => response.json())
+  }
+
+  authenticateUser (requestBody) {
+    return fetch(global.sdkdConfig.sdkdHost + '/sessions', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-SDKD-API-Client-Key': global.sdkdConfig.apiKey
+      },
+      body: JSON.stringify(requestBody)
+    })
+    .then(response => response.json())
+  }
+
+  getAwsKey () {
+    return fetch(global.sdkdConfig.sdkdHost + '/modules/wallet_aws_token', {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-SDKD-API-Client-Key': global.sdkdConfig.apiKey,
+        'X-SDKD-User-Key': global.sdkdConfig.currentUserKey
+      }
+    })
+    .then(response => response.json())
+  }
+
+  uploadKeyPart (requestBody) {
+    return fetch(global.sdkdConfig.sdkdHost + '/user_key_parts', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-SDKD-API-Client-Key': global.sdkdConfig.apiKey,
+        'X-SDKD-User-Key': global.sdkdConfig.currentUserKey
+      },
+      body: JSON.stringify(requestBody)
+    })
+    .then(response => response.json())
+  }
+
+  registerUser (requestBody) {
+    return fetch(global.sdkdConfig.sdkdHost + '/users', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-SDKD-API-Client-Key': global.sdkdConfig.apiKey
+      },
+      body: JSON.stringify(requestBody)
+    })
+    .then(response => response.json())
+  }
+
+  updateUser(requestBody) {
+    return fetch(global.sdkdConfig.sdkdHost + '/users/self', {
+      method: 'PATCH',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-SDKD-API-Client-Key': global.sdkdConfig.apiKey,
+        'X-SDKD-User-Key': global.sdkdConfig.currentUserKey
+      },
+      body: JSON.stringify(requestBody)
+    })
+  }
+
+  _debugLog (toLog) {
+    if (this.debug === true) {
+      console.log(toLog)
+    }
+  }
+}
+
+class EthNodeAjaxReq {
   constructor (config) {
     if (config !== undefined) {
       this.debug = config.debug
