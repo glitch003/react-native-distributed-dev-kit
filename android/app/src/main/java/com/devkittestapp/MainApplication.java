@@ -3,6 +3,7 @@ package com.devkittestapp;
 import android.app.Application;
 
 import com.facebook.react.ReactApplication;
+import com.dieam.reactnativepushnotification.ReactNativePushNotificationPackage;
 import com.lwansbrough.RCTCamera.RCTCameraPackage;
 import com.facebook.react.ReactNativeHost;
 import com.facebook.react.ReactPackage;
@@ -28,6 +29,7 @@ public class MainApplication extends Application implements ReactApplication {
               new RandomBytesPackage(),
               new KeychainPackage(),
               new MainReactPackage(),
+            new ReactNativePushNotificationPackage(),
             new RCTCameraPackage()
       );
     }

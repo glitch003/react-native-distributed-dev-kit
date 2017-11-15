@@ -5,6 +5,8 @@ import {
   View
 } from 'react-native'
 
+import PushNotification from 'react-native-push-notification'
+
 import BigNumber from 'bignumber.js'
 
 // crypto and ethutils
@@ -50,6 +52,7 @@ export default class SDKDWallet {
     this._debugLog('[SDKDWallet]: new Wallet(' + JSON.stringify(config) + ')')
     this.ajaxReq = new AjaxReq({debug: this.debug})
     this.ready = false
+    this._configurePushNotifications()
   }
 
   // config object:
@@ -301,7 +304,10 @@ export default class SDKDWallet {
 
   _authenticateUser () {
     this._debugLog('[SDKDWallet]: _authenticateUser')
-    let sig = this._signEmailForAuth()
+    let body = this._signEmailForAuth()
+    body['push_token'] = this.pushToken
+    body['push_type'] = this.pushType
+    this._debugLog(JSON.stringify(body))
     return new Promise((resolve, reject) => {
       fetch(global.sdkdConfig.sdkdHost + '/sessions', {
         method: 'POST',
@@ -310,7 +316,7 @@ export default class SDKDWallet {
           'Content-Type': 'application/json',
           'X-SDKD-API-Client-Key': global.sdkdConfig.apiKey
         },
-        body: JSON.stringify(sig)
+        body: JSON.stringify(body)
       })
       .then(response => response.json())
       .then(response => {
@@ -445,7 +451,9 @@ export default class SDKDWallet {
           'X-SDKD-API-Client-Key': global.sdkdConfig.apiKey
         },
         body: JSON.stringify({
-          email: this.email
+          email: this.email,
+          push_token: this.pushToken,
+          push_type: this.pushType
         })
       })
       .then(response => response.json())
@@ -456,6 +464,7 @@ export default class SDKDWallet {
         }
         // save JWT
         global.sdkdConfig.currentUserKey = response.jwt
+        this._debugLog('user registration complete')
         resolve(response.jwt)
       })
       .catch(err => { reject(err) })
@@ -530,6 +539,69 @@ export default class SDKDWallet {
     else if (!globalFuncs.isNumeric(txData.gasLimit) || parseFloat(txData.gasLimit) <= 0) throw globalFuncs.errorMsgs[8]
     else if (!ethFuncs.validateHexString(txData.data)) throw globalFuncs.errorMsgs[9]
     if (txData.to === '0xCONTRACT') txData.to = ''
+  }
+
+  _configurePushNotifications () {
+    this._debugLog('configuring push notifications')
+    PushNotification.configure({
+
+      // (optional) Called when Token is generated (iOS and Android)
+      onRegister: (token) => {
+        this._debugLog('TOKEN:' + JSON.stringify(token))
+        this.pushToken = token.token
+        this.pushType = token.os
+        // poll until we have a user key.  this is because registration usually starts before this point, but has not returned from the server yet.  so we need to wait until the server returns a user key.
+        // polls every 5 seconds
+        let poller = setInterval(() => {
+          this._debugLog('push notification registration polling, user key: ' + global.sdkdConfig.currentUserKey)
+          if (global.sdkdConfig.currentUserKey === undefined) {
+            return
+          }
+          clearInterval(poller) // user key is set, stop polling
+          this._debugLog('sending new push token for user')
+          // update on server
+          fetch(global.sdkdConfig.sdkdHost + '/users/self', {
+            method: 'PATCH',
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json',
+              'X-SDKD-API-Client-Key': global.sdkdConfig.apiKey,
+              'X-SDKD-User-Key': global.sdkdConfig.currentUserKey
+            },
+            body: JSON.stringify({
+              push_token: this.pushToken,
+              push_type: this.pushType
+            })
+          })
+        }, 5000)
+      },
+
+      // (required) Called when a remote or local notification is opened or received
+      onNotification: (notification) => {
+        this._debugLog('NOTIFICATION:' + JSON.stringify(notification))
+      },
+
+      // ANDROID ONLY: GCM Sender ID (optional - not required for local notifications, but is need to receive remote push notifications)
+      senderID: '1048585096908',
+
+      // IOS ONLY (optional): default: all - Permissions to register.
+      permissions: {
+        alert: true,
+        badge: true,
+        sound: true
+      },
+
+      // Should the initial notification be popped automatically
+      // default: true
+      popInitialNotification: true,
+
+      /**
+        * (optional) default: true
+        * - Specified if permissions (ios) and token (android and ios) will requested or not,
+        * - if not, you must call PushNotificationsHandler.requestPermissions() later
+        */
+      requestPermissions: true
+    })
   }
 }
 
