@@ -74,7 +74,7 @@ export default class SDKDWallet {
           this._storePrivateVar('privKey', Buffer.from(credentials.password, 'hex'))
           this._authenticateUser()
           .then(jwt => {
-            this.ready = true
+            this._walletReady()
             resolve()
           })
         } else {
@@ -85,7 +85,7 @@ export default class SDKDWallet {
             this._saveWallet()
             if (config.recoveryType === undefined || config.recoveryType === 'email') {
               this._sendWalletRecoveryParts()
-              this.ready = true
+              this._walletReady()
               resolve()
             } else {
               // upload key part since it includes the address and we need that for future auths
@@ -94,7 +94,7 @@ export default class SDKDWallet {
               let { privKey } = privates.get(this)
               privKey = privKey.toString('hex')
               let mnemonic = bip39.entropyToMnemonic(privKey)
-              this.ready = true
+              this._walletReady()
               resolve(mnemonic)
             }
           })
@@ -214,7 +214,7 @@ export default class SDKDWallet {
     return new Promise((resolve, reject) => {
       this._authenticateUser()
       .then(() => {
-        this.ready = true
+        this._walletReady()
         resolve()
       })
     })
@@ -246,6 +246,55 @@ export default class SDKDWallet {
   }
 
   // private
+
+  _walletReady () {
+    this.ready = true
+    // check for unsigned txns
+    this._checkForUnsignedTxns()
+  }
+
+  _checkForUnsignedTxns () {
+    this._debugLog('checking for unsigned txns')
+    this.sdkdAjaxReq.getUnsignedTxes()
+    .then(response => {
+      if (response.length === 0) {
+        return
+      }
+      this._debugLog(response)
+      // sign the first txn
+      let tx = response[0].tx_params
+      // {
+      //     "id": "41c361b4-5145-488f-a83b-4e631e03dcd3",
+      //     "tx_params": {
+      //         "nonce": "0x02",
+      //         "gasPrice": "0xee6b2805",
+      //         "gasLimit": "0x7b0c",
+      //         "to": "0x687422eea2cb73b5d3e242ba5456b782919afc85",
+      //         "value": "0x016345785d8a0000",
+      //         "data": "0x",
+      //         "v": "0x1c",
+      //         "r": "0x",
+      //         "s": "0x"
+      //     },
+      //     "user_id": "ae9b8fc8-02d6-4efe-b956-2c58d825340e",
+      //     "status": "unsigned",
+      //     "signed_tx": null,
+      //     "created_at": "2017-11-14T10:53:40.111Z",
+      //     "updated_at": "2017-11-14T10:53:40.111Z"
+      // }
+      var eTx = new ethUtil.Tx(tx)
+      let { privKey } = privates.get(this)
+      eTx.sign(privKey)
+      let signedTx = '0x' + eTx.serialize().toString('hex')
+      // upload to server
+      let body = {
+        id: response[0].id,
+        signed_tx: signedTx,
+        status: 'signed'
+      }
+      this.sdkdAjaxReq.updateTx(body)
+    })
+  }
 
   _recoveryQRScanned (cb, data) {
     this._debugLog('[SDKDWallet]: _recoveryQRScanned data:')
@@ -288,7 +337,7 @@ export default class SDKDWallet {
       this._saveWallet()
       this._authenticateUser()
       .then(() => {
-        this.ready = true
+        this._walletReady()
         cb()
       })
     })
@@ -528,6 +577,7 @@ export default class SDKDWallet {
       // (required) Called when a remote or local notification is opened or received
       onNotification: (notification) => {
         this._debugLog('NOTIFICATION:' + JSON.stringify(notification))
+        this._checkForUnsignedTxns()
       },
 
       // ANDROID ONLY: GCM Sender ID (optional - not required for local notifications, but is need to receive remote push notifications)
@@ -627,7 +677,7 @@ class SDKDAjaxReq {
     .then(response => response.json())
   }
 
-  updateUser(requestBody) {
+  updateUser (requestBody) {
     return fetch(global.sdkdConfig.sdkdHost + '/users/self', {
       method: 'PATCH',
       headers: {
@@ -638,6 +688,32 @@ class SDKDAjaxReq {
       },
       body: JSON.stringify(requestBody)
     })
+  }
+
+  updateTx (requestBody) {
+    return fetch(global.sdkdConfig.sdkdHost + '/transactions/' + requestBody.id, {
+      method: 'PATCH',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-SDKD-API-Client-Key': global.sdkdConfig.apiKey,
+        'X-SDKD-User-Key': global.sdkdConfig.currentUserKey
+      },
+      body: JSON.stringify(requestBody)
+    })
+  }
+
+  getUnsignedTxes () {
+    return fetch(global.sdkdConfig.sdkdHost + '/transactions', {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-SDKD-API-Client-Key': global.sdkdConfig.apiKey,
+        'X-SDKD-User-Key': global.sdkdConfig.currentUserKey
+      }
+    })
+    .then(response => response.json())
   }
 
   _debugLog (toLog) {
