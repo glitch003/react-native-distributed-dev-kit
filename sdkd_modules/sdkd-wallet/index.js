@@ -2,7 +2,8 @@ import * as Keychain from 'react-native-keychain'
 import QRCode from 'react-native-qrcode'
 import React from 'react'
 import {
-  View
+  View,
+  Alert
 } from 'react-native'
 
 import PushNotification from 'react-native-push-notification'
@@ -261,8 +262,9 @@ export default class SDKDWallet {
         return
       }
       this._debugLog(response)
-      // sign the first txn
+      // grab the first txn
       let tx = response[0].tx_params
+      // response[0] format:
       // {
       //     "id": "41c361b4-5145-488f-a83b-4e631e03dcd3",
       //     "tx_params": {
@@ -282,17 +284,51 @@ export default class SDKDWallet {
       //     "created_at": "2017-11-14T10:53:40.111Z",
       //     "updated_at": "2017-11-14T10:53:40.111Z"
       // }
-      var eTx = new ethUtil.Tx(tx)
-      let { privKey } = privates.get(this)
-      eTx.sign(privKey)
-      let signedTx = '0x' + eTx.serialize().toString('hex')
-      // upload to server
-      let body = {
-        id: response[0].id,
-        signed_tx: signedTx,
-        status: 'signed'
-      }
-      this.sdkdAjaxReq.updateTx(body)
+
+      // convert to ETH
+      let value = tx.value
+      value = ethFuncs.hexToDecimal(value)
+      value = etherUnits.toEther(value, 'wei')
+
+      this._debugLog('Asking user to sign tx ' + JSON.stringify(tx))
+
+      // ask the user if they wanna sign it
+      Alert.alert(
+        'New Spending Request',
+        'Request to send ' + value + ' ETH to ' + tx.to,
+        [
+          {
+            text: 'Reject',
+            onPress: () => {
+              console.log('Cancel Pressed')
+              // update on server that tx was rejected
+              let body = {
+                id: response[0].id,
+                status: 'rejected'
+              }
+              this.sdkdAjaxReq.updateTx(body)
+            },
+            style: 'cancel'
+          },
+          {
+            text: 'Approve',
+            onPress: () => {
+              console.log('OK Pressed')
+              var eTx = new ethUtil.Tx(tx)
+              let { privKey } = privates.get(this)
+              eTx.sign(privKey)
+              let signedTx = '0x' + eTx.serialize().toString('hex')
+              // upload to server
+              let body = {
+                id: response[0].id,
+                signed_tx: signedTx,
+                status: 'signed'
+              }
+              this.sdkdAjaxReq.updateTx(body)
+            }
+          }
+        ]
+      )
     })
   }
 
