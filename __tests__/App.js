@@ -51,6 +51,12 @@ jest.mock('react-native-camera', () => {
   return {}
 })
 
+jest.mock('react-native-push-notification', () => {
+  return {
+    configure: jest.fn()
+  }
+})
+
 it('renders correctly', () => {
   const tree = renderer.create(
     <App />
