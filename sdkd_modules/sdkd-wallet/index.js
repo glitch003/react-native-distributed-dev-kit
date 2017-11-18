@@ -133,6 +133,11 @@ export default class SDKDWallet {
     return this.ethNodeAjaxReq.getBalance(this.getAddressString())
   }
 
+  // pass through to sdkd ajax req class
+  getNotifications () {
+    return this.sdkdAjaxReq.getNotifications()
+  }
+
   renderAddressQRCode () {
     return (
       <QRCode

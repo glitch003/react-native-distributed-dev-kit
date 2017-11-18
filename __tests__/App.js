@@ -13,7 +13,7 @@ import renderer from 'react-test-renderer'
 
 import * as Keychain from 'react-native-keychain'
 
-const SDKD_APIKEY = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJhcGlfY2xpZW50X2lkIjoiNGVkNTNiYTAtNTRjYy00M2QwLTk4MDgtZGZiMTY2ZDhhMmI4IiwiY3JlYXRlZF9hdCI6MTUwNzIzNjQ4OH0.z4_h_4iTCYyv0OMCqe6RE0XEvM_DIagTR3lfRbQt74w' // local
+const SDKD_APIKEY = '' // local
 
 jest.mock('WebView', () => 'WebView')
 
