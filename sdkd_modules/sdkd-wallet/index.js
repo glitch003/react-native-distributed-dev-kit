@@ -49,6 +49,7 @@ export default class SDKDWallet {
     }
     if (config !== undefined) {
       this.debug = config.debug
+      global.sdkdConfig.moduleConfig.wallet.gcmSenderId = config.gcmSenderId
     }
     this._debugLog('new Wallet(' + JSON.stringify(config) + ')')
     this.ethNodeAjaxReq = new EthNodeAjaxReq({debug: this.debug})
@@ -672,7 +673,7 @@ export default class SDKDWallet {
       },
 
       // ANDROID ONLY: GCM Sender ID (optional - not required for local notifications, but is need to receive remote push notifications)
-      senderID: '1048585096908',
+      senderID: global.sdkdConfig.moduleConfig.wallet.gcmSenderId,
 
       // IOS ONLY (optional): default: all - Permissions to register.
       permissions: {

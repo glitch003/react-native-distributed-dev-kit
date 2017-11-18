@@ -32,7 +32,7 @@ export default class App extends React.Component {
   constructor () {
     super()
     SDKDConfig.init(SDKD_APIKEY)
-    let w = new SDKDWallet({debug: true})
+    let w = new SDKDWallet({debug: true, gcmSenderId: '1048585096908'})
     this.state = {
       wallet: w,
       balance: 'loading...'
