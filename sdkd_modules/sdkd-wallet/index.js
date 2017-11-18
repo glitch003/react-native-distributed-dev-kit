@@ -50,7 +50,7 @@ export default class SDKDWallet {
     if (config !== undefined) {
       this.debug = config.debug
     }
-    this._debugLog('[SDKDWallet]: new Wallet(' + JSON.stringify(config) + ')')
+    this._debugLog('new Wallet(' + JSON.stringify(config) + ')')
     this.ethNodeAjaxReq = new EthNodeAjaxReq({debug: this.debug})
     this.sdkdAjaxReq = new SDKDAjaxReq({debug: this.debug})
     this.ready = false
@@ -63,7 +63,7 @@ export default class SDKDWallet {
   //   "recoveryType": (Optional) <one of either "email" for 2 factor email recovery or "phrase" for 24 word passphrase
   // }
   activate (config) {
-    this._debugLog('[SDKDWallet]: Wallet.activate(' + JSON.stringify(config) + ')')
+    this._debugLog('Wallet.activate(' + JSON.stringify(config) + ')')
     this.email = config.email
     // check if user already has a wallet
     return new Promise((resolve, reject) => {
@@ -71,7 +71,7 @@ export default class SDKDWallet {
       .getInternetCredentials(this._keychainKey())
       .then((credentials) => {
         if (credentials) {
-          this._debugLog('[SDKDWallet]: Credentials successfully loaded for email ' + credentials.username)
+          this._debugLog('Credentials successfully loaded for email ' + credentials.username)
           this._storePrivateVar('privKey', Buffer.from(credentials.password, 'hex'))
           this._authenticateUser()
           .then(jwt => {
@@ -106,29 +106,29 @@ export default class SDKDWallet {
   }
 
   getPublicKey () {
-    this._debugLog('[SDKDWallet]: getPublicKey')
+    this._debugLog('getPublicKey')
     let { privKey } = privates.get(this)
     return ethUtil.privateToPublic(privKey)
   }
   getPublicKeyString () {
-    this._debugLog('[SDKDWallet]: getPublicKeyString')
+    this._debugLog('getPublicKeyString')
     return '0x' + this.getPublicKey().toString('hex')
   }
   getAddress () {
-    this._debugLog('[SDKDWallet]: getAddress')
+    this._debugLog('getAddress')
     let { privKey } = privates.get(this)
     return ethUtil.privateToAddress(privKey)
   }
   getAddressString () {
-    this._debugLog('[SDKDWallet]: getAddressString')
+    this._debugLog('getAddressString')
     return '0x' + this.getAddress().toString('hex')
   }
   getChecksumAddressString () {
-    this._debugLog('[SDKDWallet]: getChecksumAddressString')
+    this._debugLog('getChecksumAddressString')
     return ethUtil.toChecksumAddress(this.getAddressString())
   }
   getBalance () {
-    this._debugLog('[SDKDWallet]: getBalance, addr string is ' + this.getAddressString())
+    this._debugLog('getBalance, addr string is ' + this.getAddressString())
     return this.ethNodeAjaxReq.getBalance(this.getAddressString())
   }
 
@@ -143,7 +143,7 @@ export default class SDKDWallet {
   }
 
   sendTx (to, value) {
-    this._debugLog('[SDKDWallet]: sendTx')
+    this._debugLog('sendTx')
     let { privKey } = privates.get(this)
 
     // try generating a txn
@@ -192,7 +192,7 @@ export default class SDKDWallet {
           this.ethNodeAjaxReq.sendRawTx(rawTx.signedTx)
           .then((data) => {
             this._debugLog('sent raw tx')
-            this._debugLog(data)
+            this._debugLog(JSON.stringify(data))
             if (data.error) {
               reject(data.msg)
             } else {
@@ -251,94 +251,149 @@ export default class SDKDWallet {
   _walletReady () {
     this.ready = true
     // check for unsigned txns
-    this._checkForUnsignedTxns()
+    this._checkForActionableNotifications()
   }
 
-  _checkForUnsignedTxns () {
-    this._debugLog('checking for unsigned txns')
-    this.sdkdAjaxReq.getUnsignedTxes()
+  _checkForActionableNotifications () {
+    this._debugLog('checking for actionable notifications')
+    this.sdkdAjaxReq.getNotifications()
     .then(response => {
       if (response.length === 0) {
+        return // no notifications
+      }
+      this._debugLog(JSON.stringify(response))
+      // grab the first unapproved pairing request or unsigned txn
+      let actionableThing = response.find(r => r.status === 'unsigned' || r.status === 'unapproved')
+      if (actionableThing === undefined) {
+        // no actionable notifications, return
         return
       }
-      this._debugLog(response)
-      // grab the first txn
-      let tx = response[0].tx_params
-      // response[0] format:
-      // {
-      //     "id": "41c361b4-5145-488f-a83b-4e631e03dcd3",
-      //     "tx_params": {
-      //         "nonce": "0x02",
-      //         "gasPrice": "0xee6b2805",
-      //         "gasLimit": "0x7b0c",
-      //         "to": "0x687422eea2cb73b5d3e242ba5456b782919afc85",
-      //         "value": "0x016345785d8a0000",
-      //         "data": "0x",
-      //         "v": "0x1c",
-      //         "r": "0x",
-      //         "s": "0x"
-      //     },
-      //     "user_id": "ae9b8fc8-02d6-4efe-b956-2c58d825340e",
-      //     "status": "unsigned",
-      //     "signed_tx": null,
-      //     "created_at": "2017-11-14T10:53:40.111Z",
-      //     "updated_at": "2017-11-14T10:53:40.111Z"
-      // }
+      if (actionableThing.class_name === 'RemotePairingRequest') {
+        // RemotePairingRequest format:
+        // {
+        //     "id": "96720638-5352-4d37-9ae1-59e62e798a1f",
+        //     "user_id": "ae9b8fc8-02d6-4efe-b956-2c58d825340e",
+        //     "request_ts": "1510884382094",
+        //     "status": "unapproved",
+        //     "request_ip": null,
+        //     "created_at": "2017-11-17T02:06:24.584Z",
+        //     "updated_at": "2017-11-17T02:06:24.584Z",
+        //     "class_name": "RemotePairingRequest"
+        // }
 
-      // convert to ETH
-      let value = tx.value
-      value = ethFuncs.hexToDecimal(value)
-      value = etherUnits.toEther(value, 'wei')
+        this._debugLog('Asking user to approve pairing request ' + JSON.stringify(actionableThing))
 
-      this._debugLog('Asking user to sign tx ' + JSON.stringify(tx))
-
-      // ask the user if they wanna sign it
-      Alert.alert(
-        'New Spending Request',
-        'Request to send ' + value + ' ETH to ' + tx.to,
-        [
-          {
-            text: 'Reject',
-            onPress: () => {
-              console.log('Cancel Pressed')
-              // update on server that tx was rejected
-              let body = {
-                id: response[0].id,
-                status: 'rejected'
-              }
-              this.sdkdAjaxReq.updateTx(body)
+        // ask the user if they wanna sign it
+        Alert.alert(
+          'Metamask Pairing Request',
+          'Use this device to sign Metamask transactions?',
+          [
+            {
+              text: 'Reject',
+              onPress: () => {
+                console.log('Cancel Pressed')
+                // update on server that tx was rejected
+                let body = {
+                  id: actionableThing.id,
+                  status: 'rejected'
+                }
+                this.sdkdAjaxReq.updatePairingRequest(body)
+              },
+              style: 'cancel'
             },
-            style: 'cancel'
-          },
-          {
-            text: 'Approve',
-            onPress: () => {
-              console.log('OK Pressed')
-              var eTx = new ethUtil.Tx(tx)
-              let { privKey } = privates.get(this)
-              eTx.sign(privKey)
-              let signedTx = '0x' + eTx.serialize().toString('hex')
-              // upload to server
-              let body = {
-                id: response[0].id,
-                signed_tx: signedTx,
-                status: 'signed'
+            {
+              text: 'Approve',
+              onPress: () => {
+                console.log('OK Pressed')
+                // upload to server
+                let body = {
+                  id: actionableThing.id,
+                  status: 'approved'
+                }
+                this.sdkdAjaxReq.updatePairingRequest(body)
               }
-              this.sdkdAjaxReq.updateTx(body)
             }
-          }
-        ]
-      )
+          ]
+        )
+      } else if (actionableThing.class_name === 'EthereumTx') {
+        let tx = actionableThing.tx_params
+        // EthereumTx format:
+        // {
+        //     "id": "037de246-f657-4241-84b0-ce192d11b2eb",
+        //     "tx_params": {
+        //         "nonce": "0x",
+        //         "gasPrice": "0xee6b2805",
+        //         "gasLimit": "0x7b0c",
+        //         "to": "0x687422eea2cb73b5d3e242ba5456b782919afc85",
+        //         "value": "0x016345785d8a0000",
+        //         "data": "0x",
+        //         "v": "0x1c",
+        //         "r": "0x",
+        //         "s": "0x"
+        //     },
+        //     "user_id": "ae9b8fc8-02d6-4efe-b956-2c58d825340e",
+        //     "status": "unsigned",
+        //     "signed_tx": null,
+        //     "created_at": "2017-11-15T23:56:28.740Z",
+        //     "updated_at": "2017-11-15T23:56:28.740Z",
+        //     "class_name": "EthereumTx"
+        // },
+
+        // convert to ETH
+        let value = tx.value
+        value = ethFuncs.hexToDecimal(value)
+        value = etherUnits.toEther(value, 'wei')
+
+        this._debugLog('Asking user to sign tx ' + JSON.stringify(tx))
+
+        // ask the user if they wanna sign it
+        Alert.alert(
+          'New Spending Request',
+          'Request to send ' + value + ' ETH to ' + tx.to,
+          [
+            {
+              text: 'Reject',
+              onPress: () => {
+                console.log('Cancel Pressed')
+                // update on server that tx was rejected
+                let body = {
+                  id: actionableThing.id,
+                  status: 'rejected'
+                }
+                this.sdkdAjaxReq.updateTx(body)
+              },
+              style: 'cancel'
+            },
+            {
+              text: 'Approve',
+              onPress: () => {
+                console.log('OK Pressed')
+                var eTx = new ethUtil.Tx(tx)
+                let { privKey } = privates.get(this)
+                eTx.sign(privKey)
+                let signedTx = '0x' + eTx.serialize().toString('hex')
+                // upload to server
+                let body = {
+                  id: actionableThing.id,
+                  signed_tx: signedTx,
+                  status: 'signed'
+                }
+                this.sdkdAjaxReq.updateTx(body)
+              }
+            }
+          ]
+        )
+      }
     })
   }
 
   _recoveryQRScanned (cb, data) {
-    this._debugLog('[SDKDWallet]: _recoveryQRScanned data:')
+    this._debugLog('_recoveryQRScanned data:')
     if (this.barcodeRead) {
       return
     }
     this._debugLog('Barcode read: ')
-    this._debugLog(data)
+    this._debugLog(JSON.stringify(data))
     this.barcodeRead = true
     // example data:
     // { type: 'QR_CODE',
@@ -360,7 +415,7 @@ export default class SDKDWallet {
     // get part from server
     this.sdkdAjaxReq.getRecoveryPart(sendToServer)
     .then(response => {
-      this._debugLog('[SDKDWallet]: got recovery part')
+      this._debugLog('got recovery part')
       let remotePart = response.part
       // combine remotePart and localPart
       let s = new SDKDSSSS()
@@ -369,7 +424,7 @@ export default class SDKDWallet {
       let privKey = Buffer.from(combined, 'hex')
       this._storePrivateVar('privKey', privKey)
       // hurray, we recovered their wallet
-      this._debugLog('[SDKDWallet]: recovered, eth address is ' + this.getAddressString())
+      this._debugLog('recovered, eth address is ' + this.getAddressString())
       this._saveWallet()
       this._authenticateUser()
       .then(() => {
@@ -380,7 +435,7 @@ export default class SDKDWallet {
   }
 
   _authenticateUser () {
-    this._debugLog('[SDKDWallet]: _authenticateUser')
+    this._debugLog('_authenticateUser')
     let body = this._signEmailForAuth()
     body['push_token'] = this.pushToken
     body['push_type'] = this.pushType
@@ -388,7 +443,7 @@ export default class SDKDWallet {
     return new Promise((resolve, reject) => {
       this.sdkdAjaxReq.authenticateUser(body)
       .then(response => {
-        this._debugLog(response)
+        this._debugLog(JSON.stringify(response))
         if (response.error) {
           reject(response.error)
         }
@@ -402,13 +457,13 @@ export default class SDKDWallet {
   }
 
   _newPrivateKey () {
-    this._debugLog('[SDKDWallet]: _newPrivateKey')
+    this._debugLog('_newPrivateKey')
     let privKey = ethUtil.crypto.randomBytes(32)
     this._storePrivateVar('privKey', privKey)
   }
 
   _saveWallet () {
-    this._debugLog('[SDKDWallet]: _saveWallet')
+    this._debugLog('_saveWallet')
     let { privKey } = privates.get(this)
     privKey = privKey.toString('hex')
     Keychain
@@ -419,7 +474,7 @@ export default class SDKDWallet {
   }
 
   _sendWalletRecoveryParts () {
-    this._debugLog('[SDKDWallet]: _sendWalletRecoveryParts')
+    this._debugLog('_sendWalletRecoveryParts')
     let { privKey } = privates.get(this)
     let privKeyHex = privKey.toString('hex')
     let s = new SDKDSSSS()
@@ -438,7 +493,7 @@ export default class SDKDWallet {
   }
 
   _emailKeyPart (part) {
-    this._debugLog('[SDKDWallet]: _emailKeyPart')
+    this._debugLog('_emailKeyPart')
     // pull out api keu id so we can encode it in the qr code
     let apiKeyPayload = JSON.parse(Buffer.from(global.sdkdConfig.unsignedApiKey, 'base64').toString())
     // create qr code image to embed in email
@@ -473,7 +528,7 @@ export default class SDKDWallet {
   }
 
   _uploadKeyPart (part) {
-    this._debugLog('[SDKDWallet]: _uploadKeyPart')
+    this._debugLog('_uploadKeyPart')
     let body = {
       address: this.getAddressString(),
       part: part
@@ -490,7 +545,7 @@ export default class SDKDWallet {
   }
 
   _registerUser () {
-    this._debugLog('[SDKDWallet]: _registerUser')
+    this._debugLog('_registerUser')
     // register the user
     return new Promise((resolve, reject) => {
       let body = {
@@ -515,12 +570,12 @@ export default class SDKDWallet {
 
   _debugLog (toLog) {
     if (this.debug === true) {
-      console.log(toLog)
+      console.log('[SDKDWallet]: ' + toLog)
     }
   }
 
   _signEmailForAuth () {
-    this._debugLog('[SDKDWallet]: _signEmailForAuth')
+    this._debugLog('_signEmailForAuth')
     let nonce = crypto.randomBytes(4).toString('hex')
     let payload = nonce + '_' + this.email
 
@@ -565,7 +620,7 @@ export default class SDKDWallet {
   }
 
   _storePrivateVar (key, value) {
-    this._debugLog('[SDKDWallet]: _storePrivateVar')
+    this._debugLog('_storePrivateVar')
     let existingPrivates = privates.get(this)
     if (existingPrivates === undefined) {
       existingPrivates = {}
@@ -613,7 +668,7 @@ export default class SDKDWallet {
       // (required) Called when a remote or local notification is opened or received
       onNotification: (notification) => {
         this._debugLog('NOTIFICATION:' + JSON.stringify(notification))
-        this._checkForUnsignedTxns()
+        this._checkForActionableNotifications()
       },
 
       // ANDROID ONLY: GCM Sender ID (optional - not required for local notifications, but is need to receive remote push notifications)
@@ -739,8 +794,21 @@ class SDKDAjaxReq {
     })
   }
 
-  getUnsignedTxes () {
-    return fetch(global.sdkdConfig.sdkdHost + '/transactions', {
+  updatePairingRequest (requestBody) {
+    return fetch(global.sdkdConfig.sdkdHost + '/remote_pairing_requests/' + requestBody.id, {
+      method: 'PATCH',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'X-SDKD-API-Client-Key': global.sdkdConfig.apiKey,
+        'X-SDKD-User-Key': global.sdkdConfig.currentUserKey
+      },
+      body: JSON.stringify(requestBody)
+    })
+  }
+
+  getNotifications () {
+    return fetch(global.sdkdConfig.sdkdHost + '/notifications', {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
@@ -754,7 +822,7 @@ class SDKDAjaxReq {
 
   _debugLog (toLog) {
     if (this.debug === true) {
-      console.log(toLog)
+      console.log('[SDKDWallet.SDKDAjaxReq]: ' + toLog)
     }
   }
 }
@@ -856,7 +924,7 @@ class EthNodeAjaxReq {
 
   _debugLog (toLog) {
     if (this.debug === true) {
-      console.log(toLog)
+      console.log('[SDKDWallet.EthNodeAjaxReq]: ' + toLog)
     }
   }
 }
