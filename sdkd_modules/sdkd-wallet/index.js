@@ -19,6 +19,12 @@ import txUtil from 'ethereumjs-tx'
 import ethFuncs from './etherwallet/ethFuncs'
 import globalFuncs from './etherwallet/globalFuncs'
 import etherUnits from './etherwallet/etherUnits'
+import Validator from './etherwallet/validator'
+import Ens from './etherwallet/ens'
+import nodes from './etherwallet/nodes'
+import solidityUtils from './etherwallet/solidity/utils'
+import solidityCoder from './etherwallet/solidity/coder'
+import ajaxReq from './etherwallet/ajaxReq'
 
 // sdkd deps
 import SDKDSSSS from '@sdkd/sdkd-ssss'
@@ -33,9 +39,45 @@ import { default as qrgen } from 'yaqrcode'
 // for qr code acct recovery
 import Camera from 'react-native-camera'
 
+// for parsing address urls
+import URLParser from 'url-parse'
+
+// for MEW
+import https from 'https-browserify'
+
 // for backwards compatibility with MEW
 ethUtil.crypto = crypto
 ethUtil.Tx = txUtil
+ethUtil.solidityUtils = solidityUtils
+ethUtil.solidityCoder = solidityCoder
+ajaxReq.type = nodes.nodeTypes.Ropsten
+ajaxReq.key = 'rop_mew'
+ajaxReq.http = https
+ajaxReq.http.post = function (url, data, config) {
+  return new Promise((resolve, reject) => {
+    fetch(url, {
+      method: 'POST',
+      headers: config.headers,
+      body: data
+    })
+    .then((response) => {
+      return response.json()
+    }).then(response => {
+      console.log('response from server is ' + JSON.stringify(response))
+      resolve({data: response})
+    }).catch((error) => reject(error))
+  })
+}
+
+// make available globally so MEW can use this stuff
+global.ajaxReq = ajaxReq
+global.nodes = nodes
+global.ethFuncs = ethFuncs
+global.ens = Ens
+global.ethUtil = ethUtil
+global.globalFuncs = globalFuncs
+global.BigNumber = BigNumber
+global.etherUnits = etherUnits
 
 const privates = new WeakMap()
 
@@ -45,7 +87,8 @@ export default class SDKDWallet {
       throw new Error('You must run SDKDConfig.init before using any SDKD modules')
     }
     global.sdkdConfig.moduleConfig.wallet = {
-      ethNodeHost: 'https://api.myetherapi.com/rop'
+      ethNodeHost: 'https://api.myetherapi.com/rop',
+      etherscanHost: 'https://ropsten.etherscan.io'
     }
     if (config !== undefined) {
       this.debug = config.debug
@@ -55,7 +98,11 @@ export default class SDKDWallet {
     this.ethNodeAjaxReq = new EthNodeAjaxReq({debug: this.debug})
     this.sdkdAjaxReq = new SDKDAjaxReq({debug: this.debug})
     this.ready = false
+    this.ethFuncs = ethFuncs
+    this.ethUtil = ethUtil
+    this.etherUnits = etherUnits
     this._configurePushNotifications()
+    this._configureMEWNode()
   }
 
   // config object:
@@ -68,11 +115,13 @@ export default class SDKDWallet {
     this.email = config.email
     // check if user already has a wallet
     return new Promise((resolve, reject) => {
+      this._debugLog('getting credentials for keychain key ' + this._keychainKey())
       Keychain
       .getInternetCredentials(this._keychainKey())
       .then((credentials) => {
         if (credentials) {
           this._debugLog('Credentials successfully loaded for email ' + credentials.username)
+          this._debugLog(JSON.stringify(credentials))
           this._storePrivateVar('privKey', Buffer.from(credentials.password, 'hex'))
           this._authenticateUser()
           .then(jwt => {
@@ -157,7 +206,7 @@ export default class SDKDWallet {
       to: to,
       value: value,
       data: '',
-      gasLimit: 21000,
+      gasLimit: globalFuncs.defaultTxGasLimit,
       unit: 'wei',
       from: this.getAddressString(),
       privKey: privKey,
@@ -170,7 +219,7 @@ export default class SDKDWallet {
         this.ethNodeAjaxReq.getTransactionData(txData.from)
         .then((data) => {
           this._debugLog('got txn data')
-          this._debugLog(data)
+          this._debugLog(JSON.stringify(data))
           if (data.error) {
             reject(data.msg)
           } else {
@@ -236,7 +285,6 @@ export default class SDKDWallet {
       }}>
         <Camera
           ref={(cam) => {
-            this.camera = cam
             this.barcodeRead = false
           }}
           style={{
@@ -245,6 +293,30 @@ export default class SDKDWallet {
             alignItems: 'center'
           }}
           onBarCodeRead={this._recoveryQRScanned.bind(this, cb)}
+          barCodeTypes={['qr']}
+          aspect={Camera.constants.Aspect.fill}
+        />
+      </View>
+    )
+  }
+
+  renderSendTxQRScanner (cb) {
+    // scan the qr code
+    return (
+      <View style={{
+        flex: 1,
+        flexDirection: 'row'
+      }}>
+        <Camera
+          ref={(cam) => {
+            this.barcodeRead = false
+          }}
+          style={{
+            flex: 1,
+            justifyContent: 'flex-end',
+            alignItems: 'center'
+          }}
+          onBarCodeRead={this._sendTxQRScanned.bind(this, cb)}
           barCodeTypes={['qr']}
           aspect={Camera.constants.Aspect.fill}
         />
@@ -393,6 +465,101 @@ export default class SDKDWallet {
     })
   }
 
+  _configureMEWNode () {
+    this.curNode = nodes.nodeList.rop_mew
+
+    // set up remote node for mew, this is borrowed from MEW
+    for (var attrname in this.curNode.lib) ajaxReq[attrname] = this.curNode.lib[attrname]
+    for (var attrname in this.curNode) {
+      if (attrname != 'name' && attrname != 'tokenList' && attrname != 'lib') { ajaxReq[attrname] = this.curNode[attrname] }
+    }
+  }
+
+  _sendTxQRScanned (cb, data) {
+    this._debugLog('_sendTxQRScanned:')
+    if (this.barcodeRead) {
+      return
+    }
+    this._debugLog('Barcode read: ')
+    this._debugLog(JSON.stringify(data))
+    this.barcodeRead = true
+    // try generating a txn
+    let txData = {
+      to: null,
+      value: 0,
+      data: '',
+      gasLimit: globalFuncs.defaultTxGasLimit,
+      unit: 'eth',
+      from: this.getAddressString()
+    }
+
+    let payload = data.data
+    // the below is borrowed and modified from myetherwallet https://github.com/kvhnuke/etherwallet/blob/d5a471310c5cdde0ebb23ebe5d14a80f9bd40029/app/scripts/directives/addressFieldDrtv.js#L34
+    var _ens = new Ens()
+    // is this just an eth address, an ENS address, or is it a URL?
+    if (Validator.isValidAddress(payload)) {
+      // it's just a straight address, show confirmation screen with values
+      this._debugLog('_sendTxQRScanned - regular eth address')
+      txData.to = payload
+      this._showTxConfirmationScreen(cb, txData)
+    } else if (payload.indexOf(':') === -1 && Validator.isValidENSAddress(payload)) {
+      // it's an ENS address
+      this._debugLog('_sendTxQRScanned - ens address')
+      _ens.getAddress(payload, (data) => {
+        this._debugLog('_sendTxQRScanned - ens getAddress response: ' + JSON.stringify(data))
+        if (data.error) {
+          // report error
+          Alert.alert(data.error)
+          cb(new Error(data.error))
+        } else if (data.data === '0x0000000000000000000000000000000000000000' || data.data === '0x') {
+          const err = 'Error, your ENS address is mapped to ' + data.data + ' which is invalid.'
+          Alert.alert(err)
+          cb(new Error(err))
+        } else {
+          txData.to = data.data
+          this._showTxConfirmationScreen(cb, txData)
+        }
+      })
+    } else {
+      // let's see if it's a URL
+      this._debugLog('_sendTxQRScanned - it might be a url')
+      let url = new URLParser(payload, true)
+      this._debugLog('parsed url: ' + JSON.stringify(url))
+      if (url.protocol !== 'ethereum:') {
+        const err = 'Error, the address you scanned is not an ethereum address'
+        Alert.alert(err)
+        cb(new Error(err))
+        return
+      }
+
+      let address = url.pathname
+      if (!Validator.isValidAddress(address)) {
+        const err = 'Error, the address URL you scanned is not valid.'
+        Alert.alert(err)
+        cb(new Error(err))
+        return
+      }
+      // yay it's a valid address, let's parse the rest of the url
+      txData.to = address
+      // parse balance
+      let query = url.query
+      let value = query.value
+      if (value !== undefined) {
+        txData.value = value
+      }
+      let gas = query.gas || query.gasLimit
+      if (gas !== undefined) {
+        txData.gasLimit = gas
+      }
+      this._showTxConfirmationScreen(cb, txData)
+    }
+  }
+
+  _showTxConfirmationScreen (cb, txData) {
+    this._debugLog('_showTxConfirmationScreen() - txData: ' + JSON.stringify(txData))
+    cb()
+  }
+
   _recoveryQRScanned (cb, data) {
     this._debugLog('_recoveryQRScanned data:')
     if (this.barcodeRead) {
@@ -455,7 +622,7 @@ export default class SDKDWallet {
         }
         // save JWT
         global.sdkdConfig.currentUserKey = response.jwt
-        this._debugLog(response)
+        this._debugLog(JSON.stringify(response))
         resolve(response.jwt)
       })
       .catch(err => { reject(err) })
@@ -541,7 +708,7 @@ export default class SDKDWallet {
     }
     this.sdkdAjaxReq.uploadKeyPart(body)
     .then(response => {
-      this._debugLog(response)
+      this._debugLog(JSON.stringify(response))
       if (response.error) {
         throw new Error(response.error)
       }
@@ -561,7 +728,7 @@ export default class SDKDWallet {
       }
       this.sdkdAjaxReq.registerUser(body)
       .then(response => {
-        this._debugLog(response)
+        this._debugLog(JSON.stringify(response))
         if (response.error) {
           reject(response.error)
         }
@@ -886,7 +1053,7 @@ class EthNodeAjaxReq {
       .then(response => response.json())
       .then(data => {
         this._debugLog('got txn data: ')
-        this._debugLog(data)
+        this._debugLog(JSON.stringify(data))
         for (var i in data) {
           if (data[i].error) {
             reject(data[i].error.message)
@@ -920,7 +1087,7 @@ class EthNodeAjaxReq {
       .then(response => response.json())
       .then(response => {
         this._debugLog('got balance data: ')
-        this._debugLog(response)
+        this._debugLog(JSON.stringify(response))
         if (response.error) reject(response.error.message)
         else resolve(new BigNumber(response.result).toString())
       })

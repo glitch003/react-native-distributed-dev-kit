@@ -1,7 +1,7 @@
 {
   "name": "@sdkd/sdkd-wallet",
   "main": "index.js",
-  "version": "0.0.31",
+  "version": "0.0.32",
   "license": "MS-RSL",
   "dependencies": {
     "@sdkd/sdkd": "0.0.9",
