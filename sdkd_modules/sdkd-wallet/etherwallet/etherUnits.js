@@ -1,7 +1,4 @@
 'use strict';
-
-import BigNumber from 'bignumber.js';
-
 var etherUnits = function() {};
 etherUnits.unitMap = {
 	'wei': '1',

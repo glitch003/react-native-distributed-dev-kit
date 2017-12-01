@@ -16,6 +16,7 @@ nodes.nodeTypes = {
     Custom: "CUSTOM ETH"
 };
 nodes.ensNodeTypes = [nodes.nodeTypes.ETH, nodes.nodeTypes.Ropsten];
+nodes.domainsaleNodeTypes = [nodes.nodeTypes.ETH, nodes.nodeTypes.Ropsten];
 nodes.customNodeObj = {
     'name': 'CUS',
     'blockExplorerTX': '',
@@ -124,6 +125,18 @@ nodes.nodeList = {
         'abiList': require('./abiDefinitions/kovanAbi.json'),
         'service': 'Etherscan.io',
         'lib': require('./nodeHelpers/etherscanKov')
+    },
+    'kov_infura': {
+        'name': 'Kovan',
+        'type': nodes.nodeTypes.Kovan,
+        'blockExplorerTX': 'https://kovan.etherscan.io/tx/[[txHash]]',
+        'blockExplorerAddr': 'https://kovan.etherscan.io/address/[[address]]',
+        'eip155': true,
+        'chainId': 42,
+        'tokenList': require('./tokens/kovanTokens.json'),
+        'abiList': require('./abiDefinitions/kovanAbi.json'),
+        'service': 'infura.io',
+        'lib': new nodes.infuraNode('https://kovan.infura.io/mew')
     },
     'rin_ethscan': {
         'name': 'Rinkeby',

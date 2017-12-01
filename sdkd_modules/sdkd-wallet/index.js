@@ -25,6 +25,7 @@ import nodes from './etherwallet/nodes'
 import solidityUtils from './etherwallet/solidity/utils'
 import solidityCoder from './etherwallet/solidity/coder'
 import ajaxReq from './etherwallet/ajaxReq'
+import uiFuncs from './etherwallet/uiFuncs'
 
 // sdkd deps
 import SDKDSSSS from '@sdkd/sdkd-ssss'
@@ -232,51 +233,13 @@ export default class SDKDWallet {
     }
 
     return new Promise((resolve, reject) => {
-      try {
-        this._isTxDataValid(txData)
-        this.ethNodeAjaxReq.getTransactionData(txData.from)
-        .then((data) => {
-          this._debugLog('got txn data')
-          this._debugLog(JSON.stringify(data))
-          if (data.error) {
-            reject(data.msg)
-          } else {
-            data = data.data
-            data.isOffline = txData.isOffline ? txData.isOffline : false
-            var rawTx = {
-              nonce: ethFuncs.sanitizeHex(data.nonce),
-              gasPrice: data.isOffline ? ethFuncs.sanitizeHex(data.gasprice) : ethFuncs.sanitizeHex(ethFuncs.addTinyMoreToGas(data.gasprice)),
-              gasLimit: ethFuncs.sanitizeHex(ethFuncs.decimalToHex(txData.gasLimit)),
-              to: ethFuncs.sanitizeHex(txData.to),
-              value: ethFuncs.sanitizeHex(ethFuncs.decimalToHex(etherUnits.toWei(txData.value, txData.unit))),
-              data: ethFuncs.sanitizeHex(txData.data)
-            }
-            var eTx = new ethUtil.Tx(rawTx)
-            eTx.sign(txData.privKey)
-            rawTx.rawTx = JSON.stringify(rawTx)
-            rawTx.signedTx = '0x' + eTx.serialize().toString('hex')
-            rawTx.isError = false
-
-            return rawTx
-          }
+      uiFuncs.generateTx(txData, (rawTx) => {
+        this._debugLog('generateTx rawTx: ' + JSON.stringify(rawTx))
+        uiFuncs.sendTx(rawTx.signedTx, (response) => {
+          this._debugLog('sendTx response: ' + JSON.stringify(response))
+          resolve(response.data)
         })
-        .then((rawTx) => {
-          // tx is assembled, send signed tx
-          this.ethNodeAjaxReq.sendRawTx(rawTx.signedTx)
-          .then((data) => {
-            this._debugLog('sent raw tx')
-            this._debugLog(JSON.stringify(data))
-            if (data.error) {
-              reject(data.msg)
-            } else {
-              // resolve with tx id
-              resolve(data.result)
-            }
-          })
-        })
-      } catch (e) {
-        reject(e)
-      }
+      })
     })
   }
 
