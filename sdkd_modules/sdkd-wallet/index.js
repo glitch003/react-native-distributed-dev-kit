@@ -206,6 +206,10 @@ export default class SDKDWallet {
     return this.sdkdAjaxReq.getNotifications()
   }
 
+  checkForActionableNotifications () {
+    this._checkForActionableNotifications()
+  }
+
   renderAddressQRCode () {
     return (
       <QRCode
