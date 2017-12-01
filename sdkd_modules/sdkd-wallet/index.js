@@ -88,10 +88,28 @@ export default class SDKDWallet {
     }
     global.sdkdConfig.moduleConfig.wallet = {
       ethNodeHost: 'https://api.myetherapi.com/rop',
-      etherscanHost: 'https://ropsten.etherscan.io'
+      etherscanHost: 'https://ropsten.etherscan.io',
+      network: 'ropsten'
     }
     if (config !== undefined) {
       this.debug = config.debug
+      if (config.network) {
+        if (config.network === 'mainnet') {
+          ajaxReq.key = 'mew'
+          global.sdkdConfig.moduleConfig.wallet = {
+            ethNodeHost: 'https://api.myetherapi.com/eth',
+            etherscanHost: 'https://etherscan.io',
+            network: 'mainnet'
+          }
+        } else if (config.network === 'ropsten') {
+          ajaxReq.key = 'rop_mew'
+          global.sdkdConfig.moduleConfig.wallet = {
+            ethNodeHost: 'https://api.myetherapi.com/rop',
+            etherscanHost: 'https://ropsten.etherscan.io',
+            network: 'ropsten'
+          }
+        }
+      }
       global.sdkdConfig.moduleConfig.wallet.gcmSenderId = config.gcmSenderId
     }
     this._debugLog('new Wallet(' + JSON.stringify(config) + ')')
@@ -197,7 +215,7 @@ export default class SDKDWallet {
     )
   }
 
-  sendTx (to, value) {
+  sendTx (to, value, data) {
     this._debugLog('sendTx')
     let { privKey } = privates.get(this)
 
@@ -205,7 +223,7 @@ export default class SDKDWallet {
     let txData = {
       to: to,
       value: value,
-      data: '',
+      data: data,
       gasLimit: globalFuncs.defaultTxGasLimit,
       unit: 'wei',
       from: this.getAddressString(),
@@ -251,7 +269,8 @@ export default class SDKDWallet {
             if (data.error) {
               reject(data.msg)
             } else {
-              resolve(data.data)
+              // resolve with tx id
+              resolve(data.result)
             }
           })
         })
@@ -369,7 +388,6 @@ export default class SDKDWallet {
             {
               text: 'Reject',
               onPress: () => {
-                console.log('Cancel Pressed')
                 // update on server that tx was rejected
                 let body = {
                   id: actionableThing.id,
@@ -382,7 +400,6 @@ export default class SDKDWallet {
             {
               text: 'Approve',
               onPress: () => {
-                console.log('OK Pressed')
                 // upload to server
                 let body = {
                   id: actionableThing.id,
@@ -419,8 +436,12 @@ export default class SDKDWallet {
 
         // convert to ETH
         let value = tx.value
-        value = ethFuncs.hexToDecimal(value)
-        value = etherUnits.toEther(value, 'wei')
+        if (value === '0x') {
+          value = 0
+        } else {
+          value = ethFuncs.hexToDecimal(value)
+          value = etherUnits.toEther(value, 'wei')
+        }
 
         this._debugLog('Asking user to sign tx ' + JSON.stringify(tx))
 
@@ -432,7 +453,6 @@ export default class SDKDWallet {
             {
               text: 'Reject',
               onPress: () => {
-                console.log('Cancel Pressed')
                 // update on server that tx was rejected
                 let body = {
                   id: actionableThing.id,
@@ -445,7 +465,6 @@ export default class SDKDWallet {
             {
               text: 'Approve',
               onPress: () => {
-                console.log('OK Pressed')
                 var eTx = new ethUtil.Tx(tx)
                 let { privKey } = privates.get(this)
                 eTx.sign(privKey)
@@ -501,7 +520,7 @@ export default class SDKDWallet {
       // it's just a straight address, show confirmation screen with values
       this._debugLog('_sendTxQRScanned - regular eth address')
       txData.to = payload
-      this._showTxConfirmationScreen(cb, txData)
+      cb(txData)
     } else if (payload.indexOf(':') === -1 && Validator.isValidENSAddress(payload)) {
       // it's an ENS address
       this._debugLog('_sendTxQRScanned - ens address')
@@ -517,7 +536,7 @@ export default class SDKDWallet {
           cb(new Error(err))
         } else {
           txData.to = data.data
-          this._showTxConfirmationScreen(cb, txData)
+          cb(txData)
         }
       })
     } else {
@@ -551,13 +570,8 @@ export default class SDKDWallet {
       if (gas !== undefined) {
         txData.gasLimit = gas
       }
-      this._showTxConfirmationScreen(cb, txData)
+      cb(txData)
     }
-  }
-
-  _showTxConfirmationScreen (cb, txData) {
-    this._debugLog('_showTxConfirmationScreen() - txData: ' + JSON.stringify(txData))
-    cb()
   }
 
   _recoveryQRScanned (cb, data) {
