@@ -3,7 +3,9 @@ import QRCode from 'react-native-qrcode'
 import React from 'react'
 import {
   View,
-  Alert
+  Alert,
+  Platform,
+  PermissionsAndroid
 } from 'react-native'
 
 import PushNotification from 'react-native-push-notification'
@@ -100,14 +102,16 @@ export default class SDKDWallet {
           global.sdkdConfig.moduleConfig.wallet = {
             ethNodeHost: 'https://api.myetherapi.com/eth',
             etherscanHost: 'https://etherscan.io',
-            network: 'mainnet'
+            network: 'mainnet',
+            networkVersion: '1'
           }
         } else if (config.network === 'ropsten') {
           ajaxReq.key = 'rop_mew'
           global.sdkdConfig.moduleConfig.wallet = {
             ethNodeHost: 'https://api.myetherapi.com/rop',
             etherscanHost: 'https://ropsten.etherscan.io',
-            network: 'ropsten'
+            network: 'ropsten',
+            networkVersion: '3'
           }
         }
       }
@@ -168,6 +172,7 @@ export default class SDKDWallet {
               resolve(mnemonic)
             }
           })
+          .catch(err => reject(new Error(err)))
         }
       })
       .catch(err => reject(err))
@@ -247,6 +252,15 @@ export default class SDKDWallet {
     })
   }
 
+  signTx (tx) {
+    this._debugLog('signTx')
+    let eTx = new ethUtil.Tx(tx)
+    let { privKey } = privates.get(this)
+    eTx.sign(privKey)
+    let signedTx = '0x' + eTx.serialize().toString('hex')
+    return signedTx
+  }
+
   activateFromRecoveryPhrase (email, phrase) {
     this.email = email
     let hexPrivKey = bip39.mnemonicToEntropy(phrase)
@@ -262,9 +276,13 @@ export default class SDKDWallet {
     })
   }
 
-  renderRecoveryQRScanner (cb) {
+  async renderRecoveryQRScanner (cb) {
+    let permission = await this._makeSureCameraPermissionHasBeenRequested()
+    if (!permission) {
+      return Promise.reject(new Error('You must let Amble access your camera in order to scan a QR code.'))
+    }
     // scan the qr code
-    return (
+    return Promise.resolve(
       <View style={{
         flex: 1,
         flexDirection: 'row'
@@ -312,8 +330,32 @@ export default class SDKDWallet {
 
   // private
 
+  async _makeSureCameraPermissionHasBeenRequested () {
+     // only needed for android users, return true instantly otherwise
+    if (Platform.OS !== 'android') {
+      return Promise.resolve(true)
+    }
+    try {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.CAMERA,
+        {
+          'title': 'Camera Permission',
+          'message': 'Amble needs access to your camera to scan the recovery QR code'
+        }
+      )
+      if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+        return Promise.resolve(true)
+      } else {
+        return Promise.resolve(false)
+      }
+    } catch (err) {
+      return Promise.reject(err)
+    }
+  }
+
   _walletReady () {
     this.ready = true
+    console.log('Wallet ready - address is ' + this.getAddressString())
     // check for unsigned txns
     this._checkForActionableNotifications()
   }
