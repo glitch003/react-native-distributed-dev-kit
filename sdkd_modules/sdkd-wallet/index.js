@@ -8,7 +8,7 @@ import {
   PermissionsAndroid
 } from 'react-native'
 
-import PushNotification from 'react-native-push-notification'
+// import PushNotification from 'react-native-push-notification'
 
 import BigNumber from 'bignumber.js'
 
@@ -144,7 +144,7 @@ export default class SDKDWallet {
       .then((credentials) => {
         if (credentials) {
           this._debugLog('Credentials successfully loaded for email ' + credentials.username)
-          this._debugLog(JSON.stringify(credentials))
+          // this._debugLog(JSON.stringify(credentials))
           this._storePrivateVar('privKey', Buffer.from(credentials.password, 'hex'))
           this._authenticateUser()
           .then(jwt => {
@@ -225,6 +225,10 @@ export default class SDKDWallet {
     )
   }
 
+  approveTransaction (tx) {
+    
+  }
+
   sendTx (to, value, data) {
     this._debugLog('sendTx')
     let { privKey } = privates.get(this)
@@ -261,6 +265,19 @@ export default class SDKDWallet {
     return signedTx
   }
 
+  signMsg (msg) {
+    this._debugLog('signMsg: ' + JSON.stringify(msg))
+    let { privKey } = privates.get(this)
+    let hashedMsg = ethUtil.hashPersonalMessage(ethUtil.toBuffer(msg))
+    let signed = ethUtil.ecsign(hashedMsg, privKey)
+    // console.log(signed.r)
+    // console.log(signed.s)
+    // console.log([signed.v])
+    let combined = Buffer.concat([Buffer.from(signed.r), Buffer.from(signed.s), Buffer.from([signed.v])])
+    let combinedHex = combined.toString('hex')
+    return '0x' + combinedHex
+  }
+
   activateFromRecoveryPhrase (email, phrase) {
     this.email = email
     let hexPrivKey = bip39.mnemonicToEntropy(phrase)
@@ -273,6 +290,23 @@ export default class SDKDWallet {
         this._walletReady()
         resolve()
       })
+    })
+  }
+
+  activateFromPrivateKey (email, privateKey) {
+    this.email = email
+    let privKey = Buffer.from(privateKey, 'hex')
+    this._storePrivateVar('privKey', privKey)
+    this._saveWallet()
+    return new Promise((resolve, reject) => {
+      this._registerUser()
+      .then(jwt => {
+        // upload key part since it includes the address and we need that for future auths
+        this._uploadKeyPart('<ImportedPrivateKey>')
+        this._walletReady()
+        resolve()
+      })
+      .catch(err => reject(new Error(err)))
     })
   }
 
@@ -326,6 +360,13 @@ export default class SDKDWallet {
         />
       </View>
     )
+  }
+
+  reset () {
+    privates.set(this, {})
+    this.email = undefined
+    this.ready = false
+    global.sdkdConfig.currentUserKey = undefined
   }
 
   // private
@@ -836,58 +877,58 @@ export default class SDKDWallet {
 
   _configurePushNotifications () {
     this._debugLog('configuring push notifications')
-    PushNotification.configure({
+  //   PushNotification.configure({
 
-      // (optional) Called when Token is generated (iOS and Android)
-      onRegister: (token) => {
-        this._debugLog('TOKEN:' + JSON.stringify(token))
-        this.pushToken = token.token
-        this.pushType = token.os
-        // poll until we have a user key.  this is because registration usually starts before this point, but has not returned from the server yet.  so we need to wait until the server returns a user key.
-        // polls every 5 seconds
-        let poller = setInterval(() => {
-          this._debugLog('push notification registration polling, user key: ' + global.sdkdConfig.currentUserKey)
-          if (global.sdkdConfig.currentUserKey === undefined) {
-            return
-          }
-          clearInterval(poller) // user key is set, stop polling
-          this._debugLog('sending new push token for user')
-          // update on server
-          let body = {
-            push_token: this.pushToken,
-            push_type: this.pushType
-          }
-          this.sdkdAjaxReq.updateUser(body)
-        }, 5000)
-      },
+  //     // (optional) Called when Token is generated (iOS and Android)
+  //     onRegister: (token) => {
+  //       this._debugLog('TOKEN:' + JSON.stringify(token))
+  //       this.pushToken = token.token
+  //       this.pushType = token.os
+  //       // poll until we have a user key.  this is because registration usually starts before this point, but has not returned from the server yet.  so we need to wait until the server returns a user key.
+  //       // polls every 5 seconds
+  //       let poller = setInterval(() => {
+  //         this._debugLog('push notification registration polling, user key: ' + global.sdkdConfig.currentUserKey)
+  //         if (global.sdkdConfig.currentUserKey === undefined) {
+  //           return
+  //         }
+  //         clearInterval(poller) // user key is set, stop polling
+  //         this._debugLog('sending new push token for user')
+  //         // update on server
+  //         let body = {
+  //           push_token: this.pushToken,
+  //           push_type: this.pushType
+  //         }
+  //         this.sdkdAjaxReq.updateUser(body)
+  //       }, 5000)
+  //     },
 
-      // (required) Called when a remote or local notification is opened or received
-      onNotification: (notification) => {
-        this._debugLog('NOTIFICATION:' + JSON.stringify(notification))
-        this._checkForActionableNotifications()
-      },
+  //     // (required) Called when a remote or local notification is opened or received
+  //     onNotification: (notification) => {
+  //       this._debugLog('NOTIFICATION:' + JSON.stringify(notification))
+  //       this._checkForActionableNotifications()
+  //     },
 
-      // ANDROID ONLY: GCM Sender ID (optional - not required for local notifications, but is need to receive remote push notifications)
-      senderID: global.sdkdConfig.moduleConfig.wallet.gcmSenderId,
+  //     // ANDROID ONLY: GCM Sender ID (optional - not required for local notifications, but is need to receive remote push notifications)
+  //     senderID: global.sdkdConfig.moduleConfig.wallet.gcmSenderId,
 
-      // IOS ONLY (optional): default: all - Permissions to register.
-      permissions: {
-        alert: true,
-        badge: true,
-        sound: true
-      },
+  //     // IOS ONLY (optional): default: all - Permissions to register.
+  //     permissions: {
+  //       alert: true,
+  //       badge: true,
+  //       sound: true
+  //     },
 
-      // Should the initial notification be popped automatically
-      // default: true
-      popInitialNotification: true,
+  //     // Should the initial notification be popped automatically
+  //     // default: true
+  //     popInitialNotification: true,
 
-      /**
-        * (optional) default: true
-        * - Specified if permissions (ios) and token (android and ios) will requested or not,
-        * - if not, you must call PushNotificationsHandler.requestPermissions() later
-        */
-      requestPermissions: true
-    })
+  //     /**
+  //       * (optional) default: true
+  //       * - Specified if permissions (ios) and token (android and ios) will requested or not,
+  //       * - if not, you must call PushNotificationsHandler.requestPermissions() later
+  //       */
+  //     requestPermissions: true
+  //   })
   }
 }
 
