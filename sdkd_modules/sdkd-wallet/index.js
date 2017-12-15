@@ -72,6 +72,23 @@ ajaxReq.http.post = function (url, data, config) {
   })
 }
 
+ajaxReq.getETHvalue = function (callback) {
+  const CCRATEAPI = "https://min-api.cryptocompare.com/data/price?fsym=ETH&tsyms=USD,EUR,GBP,BTC,CHF,REP";
+  fetch(CCRATEAPI)
+  .then(res => res.json())
+  .then(function (data) {
+    let priceObj = {
+      usd: parseFloat(data['USD']).toFixed(6),
+      eur: parseFloat(data['EUR']).toFixed(6),
+      btc: parseFloat(data['BTC']).toFixed(6),
+      chf: parseFloat(data['CHF']).toFixed(6),
+      rep: parseFloat(data['REP']).toFixed(6),
+      gbp: parseFloat(data['GBP']).toFixed(6)
+    }
+    callback(priceObj)
+  })
+}
+
 // make available globally so MEW can use this stuff
 global.ajaxReq = ajaxReq
 global.nodes = nodes
@@ -91,8 +108,9 @@ export default class SDKDWallet {
     }
     global.sdkdConfig.moduleConfig.wallet = {
       ethNodeHost: 'https://api.myetherapi.com/rop',
-      etherscanHost: 'https://ropsten.etherscan.io',
-      network: 'ropsten'
+      etherscanHost: 'https://ropsten.infura.io/JTdaA5dJvlwfCfdgT5Cm',
+      network: 'ropsten',
+      networkVersion: '3'
     }
     if (config !== undefined) {
       this.debug = config.debug
@@ -100,18 +118,10 @@ export default class SDKDWallet {
         if (config.network === 'mainnet') {
           ajaxReq.key = 'mew'
           global.sdkdConfig.moduleConfig.wallet = {
-            ethNodeHost: 'https://api.myetherapi.com/eth',
+            ethNodeHost: 'https://mainnet.infura.io/JTdaA5dJvlwfCfdgT5Cm',
             etherscanHost: 'https://etherscan.io',
             network: 'mainnet',
             networkVersion: '1'
-          }
-        } else if (config.network === 'ropsten') {
-          ajaxReq.key = 'rop_mew'
-          global.sdkdConfig.moduleConfig.wallet = {
-            ethNodeHost: 'https://api.myetherapi.com/rop',
-            etherscanHost: 'https://ropsten.etherscan.io',
-            network: 'ropsten',
-            networkVersion: '3'
           }
         }
       }
@@ -124,6 +134,7 @@ export default class SDKDWallet {
     this.ethFuncs = ethFuncs
     this.ethUtil = ethUtil
     this.etherUnits = etherUnits
+    this.defaultGasPrice = '25'
     this._configurePushNotifications()
     this._configureMEWNode()
   }
@@ -223,10 +234,6 @@ export default class SDKDWallet {
         bgColor='black'
         fgColor='white' />
     )
-  }
-
-  approveTransaction (tx) {
-    
   }
 
   sendTx (to, value, data) {
@@ -369,8 +376,82 @@ export default class SDKDWallet {
     global.sdkdConfig.currentUserKey = undefined
   }
 
-  // private
+  // borrowed from MEW
+  setBalance () {
+    // this.balance = this.usdBalance = this.eurBalance = this.btcBalance = this.chfBalance = this.repBalance = this.gbpBalance = 'loading'
+    return new Promise((resolve, reject) => {
+      console.log('setting balance')
+      ajaxReq.getBalance(this.getAddressString(), (data) => {
+        if (data.error) reject(data.msg)
+        else {
+          this.balance = etherUnits.toEther(data.data.balance, 'wei')
+          ajaxReq.getETHvalue((data) => {
+            this.usdPrice = etherUnits.toFiat('1', 'ether', data.usd)
+            this.gbpPrice = etherUnits.toFiat('1', 'ether', data.gbp)
+            this.eurPrice = etherUnits.toFiat('1', 'ether', data.eur)
+            this.btcPrice = etherUnits.toFiat('1', 'ether', data.btc)
+            this.chfPrice = etherUnits.toFiat('1', 'ether', data.chf)
+            this.repPrice = etherUnits.toFiat('1', 'ether', data.rep)
 
+            this.usdBalance = etherUnits.toFiat(this.balance, 'ether', data.usd)
+            this.gbpBalance = etherUnits.toFiat(this.balance, 'ether', data.gbp)
+            this.eurBalance = etherUnits.toFiat(this.balance, 'ether', data.eur)
+            this.btcBalance = etherUnits.toFiat(this.balance, 'ether', data.btc)
+            this.chfBalance = etherUnits.toFiat(this.balance, 'ether', data.chf)
+            this.repBalance = etherUnits.toFiat(this.balance, 'ether', data.rep)
+            resolve()
+          })
+        }
+      })
+    })
+  }
+
+  // util funcs borrowed from metamask
+  // Takes wei Hex, returns wei BN, even if input is null
+  numericBalance (balance) {
+    if (!balance) return new ethUtil.BN(0, 16)
+    var stripped = ethUtil.stripHexPrefix(balance)
+    return new ethUtil.BN(stripped, 16)
+  }
+
+  // Takes  hex, returns [beforeDecimal, afterDecimal]
+  parseBalance (balance) {
+    var beforeDecimal, afterDecimal
+    const wei = this.numericBalance(balance)
+    var weiString = wei.toString()
+    const trailingZeros = /0+$/
+
+    beforeDecimal = weiString.length > 18 ? weiString.slice(0, weiString.length - 18) : '0'
+    afterDecimal = ('000000000000000000' + wei).slice(-18).replace(trailingZeros, '')
+    if (afterDecimal === '') { afterDecimal = '0' }
+    return [beforeDecimal, afterDecimal]
+  }
+
+  // Takes wei hex, returns an object with three properties.
+  // Its "formatted" property is what we generally use to render values.
+  formatBalance (balance, decimalsToKeep, needsParse = true) {
+    var parsed = needsParse ? this.parseBalance(balance) : balance.split('.')
+    var beforeDecimal = parsed[0]
+    var afterDecimal = parsed[1]
+    var formatted = 'None'
+    if (decimalsToKeep === undefined) {
+      if (beforeDecimal === '0') {
+        if (afterDecimal !== '0') {
+          var sigFigs = afterDecimal.match(/^0*(.{2})/) // default: grabs 2 most significant digits
+          if (sigFigs) { afterDecimal = sigFigs[0] }
+          formatted = '0.' + afterDecimal + ' ETH'
+        }
+      } else {
+        formatted = beforeDecimal + '.' + afterDecimal.slice(0, 3) + ' ETH'
+      }
+    } else {
+      afterDecimal += Array(decimalsToKeep).join('0')
+      formatted = beforeDecimal + '.' + afterDecimal.slice(0, decimalsToKeep) + ' ETH'
+    }
+    return formatted
+  }
+
+  // private
   async _makeSureCameraPermissionHasBeenRequested () {
      // only needed for android users, return true instantly otherwise
     if (Platform.OS !== 'android') {
@@ -397,6 +478,7 @@ export default class SDKDWallet {
   _walletReady () {
     this.ready = true
     console.log('Wallet ready - address is ' + this.getAddressString())
+    this.setBalance() // set balance
     // check for unsigned txns
     this._checkForActionableNotifications()
   }
