@@ -107,8 +107,8 @@ export default class SDKDWallet {
       throw new Error('You must run SDKDConfig.init before using any SDKD modules')
     }
     global.sdkdConfig.moduleConfig.wallet = {
-      ethNodeHost: 'https://api.myetherapi.com/rop',
-      etherscanHost: 'https://ropsten.infura.io/JTdaA5dJvlwfCfdgT5Cm',
+      ethNodeHost: 'https://ropsten.infura.io/JTdaA5dJvlwfCfdgT5Cm',
+      etherscanHost: 'https://ropsten.etherscan.io',
       network: 'ropsten',
       networkVersion: '3'
     }
@@ -134,7 +134,7 @@ export default class SDKDWallet {
     this.ethFuncs = ethFuncs
     this.ethUtil = ethUtil
     this.etherUnits = etherUnits
-    this.defaultGasPrice = '25'
+    this.defaultGasPrice = '60'
     this._configurePushNotifications()
     this._configureMEWNode()
   }
