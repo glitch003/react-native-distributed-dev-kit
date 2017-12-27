@@ -214,7 +214,21 @@ export default class SDKDWallet {
   }
   getBalance () {
     this._debugLog('getBalance, addr string is ' + this.getAddressString())
-    return this.ethNodeAjaxReq.getBalance(this.getAddressString())
+    return new Promise((resolve, reject) => {
+      ajaxReq.getBalance(this.getAddressString(), (data) => {
+        if (data.error) reject(data.msg)
+        else {
+          this.balance = data.data.balance
+          resolve(this.balance)
+        }
+      })
+    })
+  }
+  formattedBalance () {
+    // convert balance to hex
+    let hexBalance = new BigNumber(this.balance).toString('16')
+    // format
+    return this.formatBalance(hexBalance)
   }
 
   // pass through to sdkd ajax req class
@@ -384,7 +398,8 @@ export default class SDKDWallet {
       ajaxReq.getBalance(this.getAddressString(), (data) => {
         if (data.error) reject(data.msg)
         else {
-          this.balance = etherUnits.toEther(data.data.balance, 'wei')
+          this.balance = data.data.balance
+          let ethBalance = etherUnits.toEther(data.data.balance, 'wei')
           ajaxReq.getETHvalue((data) => {
             this.usdPrice = etherUnits.toFiat('1', 'ether', data.usd)
             this.gbpPrice = etherUnits.toFiat('1', 'ether', data.gbp)
@@ -393,12 +408,12 @@ export default class SDKDWallet {
             this.chfPrice = etherUnits.toFiat('1', 'ether', data.chf)
             this.repPrice = etherUnits.toFiat('1', 'ether', data.rep)
 
-            this.usdBalance = etherUnits.toFiat(this.balance, 'ether', data.usd)
-            this.gbpBalance = etherUnits.toFiat(this.balance, 'ether', data.gbp)
-            this.eurBalance = etherUnits.toFiat(this.balance, 'ether', data.eur)
-            this.btcBalance = etherUnits.toFiat(this.balance, 'ether', data.btc)
-            this.chfBalance = etherUnits.toFiat(this.balance, 'ether', data.chf)
-            this.repBalance = etherUnits.toFiat(this.balance, 'ether', data.rep)
+            this.usdBalance = etherUnits.toFiat(ethBalance, 'ether', data.usd)
+            this.gbpBalance = etherUnits.toFiat(ethBalance, 'ether', data.gbp)
+            this.eurBalance = etherUnits.toFiat(ethBalance, 'ether', data.eur)
+            this.btcBalance = etherUnits.toFiat(ethBalance, 'ether', data.btc)
+            this.chfBalance = etherUnits.toFiat(ethBalance, 'ether', data.chf)
+            this.repBalance = etherUnits.toFiat(ethBalance, 'ether', data.rep)
             resolve()
           })
         }
