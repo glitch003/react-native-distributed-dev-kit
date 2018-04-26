@@ -1,3 +1,7 @@
+# This repo is outdated and has been moved.
+
+Check out https://deco.network where you can get the updated versions of these modules.
+
 # SDKD Example App w/modules - Ropsten testnet only (for now)
 
 This repository contains 2 things:
@@ -11,7 +15,7 @@ Replace line 18 of App.js with your own API key.  The one hardcoded is for local
 
 Docs are available here: http://docs.sdkd.co
 
-You can also join our telegram group for live help: https://t.me/sdk_d
+You can also join our telegram group for live help: https://t.me/deco_network
 
 To run tests, just use "npm test"
 
